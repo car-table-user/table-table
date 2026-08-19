@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>车型信息表</title>
+<style>
+body { font-family: sans-serif; padding: 20px; background: #f5f7fa; }
+h1 { color: #1a73e8; }
+table { width: 100%; border-collapse: collapse; background: #fff; margin-top: 20px; box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+th, td { padding: 10px; border: 1px solid #ddd; text-align: left; }
+th { background: #1a73e8; color: #fff; }
+button { padding: 8px 12px; margin: 5px; border: none; border-radius: 5px; cursor: pointer; }
+.add { background: #1a73e8; color: #fff; }
+.edit { background: #ffc107; }
+.delete { background: #dc3545; color: #fff; }
+input, textarea { width: 95%; padding: 8px; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px; }
+.modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); justify-content: center; align-items: center; }
+.modal-content { background: #fff; padding: 20px; border-radius: 8px; width: 90%; max-width: 400px; }
+</style>
+</head>
+<body>
+
+<h1>🚗 车型信息表</h1>
+<button class="add" onclick="openModal()">＋ 新增</button>
+<table>
+  <thead><tr><th>车型</th><th>内容</th><th>备注</th><th>操作</th></tr></thead>
+  <tbody id="tbody"></tbody>
+</table>
+
+<div class="modal" id="modal">
+  <div class="modal-content">
+    <h3 id="modalTitle">新增</h3>
+    <input id="car" placeholder="车型">
+    <textarea id="content" rows="3" placeholder="内容"></textarea>
+    <input id="note" placeholder="备注">
+    <div style="text-align:right; margin-top:15px;">
+      <button onclick="closeModal()">取消</button>
+      <button class="add" onclick="save()">保存</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let data = JSON.parse(localStorage.getItem('carTable') || '[]');
+let editId = null;
+
+function render() {
+  const tb = document.getElementById('tbody');
+  tb.innerHTML = data.map(r => `
+    <tr>
+      <td>${r.car}</td>
+      <td>${r.content}</td>
+      <td>${r.note}</td>
+      <td>
+        <button class="edit" onclick="edit('${r.id}')">编辑</button>
+        <button class="delete" onclick="del('${r.id}')">删除</button>
+      </td>
+    </tr>
+  `).join('');
+}
+render();
+
+function openModal() {
+  editId = null;
+  document.getElementById('modalTitle').innerText = '新增';
+  document.getElementById('car').value = '';
+  document.getElementById('content').value = '';
+  document.getElementById('note').value = '';
+  document.getElementById('modal').style.display = 'flex';
+}
+function closeModal() { document.getElementById('modal').style.display = 'none'; }
+function save() {
+  const car = document.getElementById('car').value.trim();
+  const content = document.getElementById('content').value.trim();
+  const note = document.getElementById('note').value.trim();
+  if (!car || !content) return alert('车型和内容不能为空');
+  if (editId) {
+    const r = data.find(x => x.id === editId);
+    Object.assign(r, {car, content, note});
+  } else {
+    data.push({id: Date.now().toString(), car, content, note});
+  }
+  localStorage.setItem('carTable', JSON.stringify(data));
+  render(); closeModal();
+}
+function edit(id) {
+  editId = id;
+  const r = data.find(x => x.id === id);
+  document.getElementById('modalTitle').innerText = '编辑';
+  document.getElementById('car').value = r.car;
+  document.getElementById('content').value = r.content;
+  document.getElementById('note').value = r.note;
+  document.getElementById('modal').style.display = 'flex';
+}
+function del(id) {
+  if (confirm('确定删除？')) {
+    data = data.filter(x => x.id !== id);
+    localStorage.setItem('carTable', JSON.stringify(data));
+    render();
+  }
+}
+</script>
+</body>
+</html>
