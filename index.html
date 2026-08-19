@@ -45,6 +45,7 @@ body {
     border-radius: 10px;
     border: 1px solid var(--border);
 }
+
 .tab-content { display: none; padding: 12px; }
 .tab-content.active { display: block; }
 
@@ -56,15 +57,28 @@ body {
     margin-bottom: 12px;
     box-shadow: 0 2px 6px rgba(0,0,0,0.08);
 }
-.card h3 { margin: 0 0 8px; font-size: 18px; }
-.card p { margin: 4px 0; font-size: 14px; color: #666; }
-.card-actions { margin-top: 10px; }
-.card-actions span {
+.card h3 {
+    margin: 0 0 8px;
+    font-size: 18px;
     color: var(--primary);
-    margin-right: 12px;
+}
+.card p {
+    margin: 4px 0;
     font-size: 14px;
+    color: #555;
+}
+.card-actions {
+    margin-top: 12px;
+    display: flex;
+    gap: 16px;
+}
+.card-actions span {
+    font-size: 14px;
+    font-weight: 500;
     cursor: pointer;
 }
+.card-actions .edit { color: var(--primary); }
+.card-actions .delete { color: var(--danger); }
 
 /* 底部导航 */
 .bottom-nav {
@@ -129,6 +143,7 @@ body {
     margin-bottom: 10px;
 }
 .danger { background: var(--danger) !important; }
+.cancel { background: #ccc !important; color: #333 !important; }
 
 /* Toast */
 .toast {
@@ -233,7 +248,7 @@ body {
 <button class="fab" onclick="openForm()">＋</button>
 
 <!-- 表单弹窗 -->
-<div class="modal" id="formModal" onclick="closeModal('formModal')">
+<div class="modal" id="formModal">
     <div class="modal-content" onclick="event.stopPropagation()">
         <h3 id="formTitle">新增车型</h3>
         <input id="inputModel" placeholder="车型">
@@ -241,16 +256,17 @@ body {
         <textarea id="inputRemark" rows="2" placeholder="备注"></textarea>
         <input id="inputIndex" type="hidden">
         <button onclick="saveRow()">保存</button>
-        <button onclick="closeModal('formModal')" style="background:#ccc;color:#333">取消</button>
+        <button class="cancel" onclick="closeModal('formModal')">取消</button>
     </div>
 </div>
 
 <!-- 查看弹窗 -->
-<div class="modal" id="viewModal" onclick="closeModal('viewModal')">
+<div class="modal" id="viewModal">
     <div class="modal-content" onclick="event.stopPropagation()">
         <h3>详情</h3>
         <div id="viewText"></div>
-        <button onclick="closeModal('viewModal')" style="background:#ccc;color:#333">关闭</button>
+        <button class="btn" onclick="doEditFromView()">✏️ 编辑</button>
+        <button class="cancel" onclick="closeModal('viewModal')">关闭</button>
     </div>
 </div>
 
@@ -285,11 +301,11 @@ function renderList() {
         div.className = "card";
         div.innerHTML = `
             <h3 onclick="openView('${encodeURIComponent(row[0])}')">${row[0]}</h3>
-            <p onclick="openView('${encodeURIComponent(row[1])}')">${row[1].slice(0, 50)}</p >
-            <p onclick="openView('${encodeURIComponent(row[2])}')">${row[2].slice(0, 50)}</p >
+            <p onclick="openView('${encodeURIComponent(row[1])}')">${row[1].slice(0, 60)}</p >
+            <p onclick="openView('${encodeURIComponent(row[2])}')">${row[2].slice(0, 60)}</p >
             <div class="card-actions">
-                <span onclick="editRow(${i})">编辑</span>
-                <span onclick="deleteRow(${i})">删除</span>
+                <span class="edit" onclick="event.stopPropagation(); doEdit(${i})">✏️ 编辑</span>
+                <span class="delete" onclick="event.stopPropagation(); deleteRow(${i})">🗑️ 删除</span>
             </div>
         `;
         list.appendChild(div);
@@ -304,21 +320,28 @@ function openView(text) {
     document.getElementById("viewModal").classList.add("show");
 }
 
-function openForm(i = -1) {
-    if (i >= 0) {
-        const row = loadData()[i];
-        document.getElementById("formTitle").textContent = "编辑车型";
-        document.getElementById("inputModel").value = row[0];
-        document.getElementById("inputContent").value = row[1];
-        document.getElementById("inputRemark").value = row[2];
-        document.getElementById("inputIndex").value = i;
-    } else {
-        document.getElementById("formTitle").textContent = "新增车型";
-        document.getElementById("inputModel").value = "";
-        document.getElementById("inputContent").value = "";
-        document.getElementById("inputRemark").value = "";
-        document.getElementById("inputIndex").value = -1;
-    }
+function doEditFromView() {
+    const index = parseInt(document.getElementById("inputIndex").value);
+    closeModal("viewModal");
+    setTimeout(() => doEdit(index), 50);
+}
+
+function doEdit(i) {
+    const row = loadData()[i];
+    document.getElementById("formTitle").textContent = "编辑车型";
+    document.getElementById("inputModel").value = row[0];
+    document.getElementById("inputContent").value = row[1];
+    document.getElementById("inputRemark").value = row[2];
+    document.getElementById("inputIndex").value = i;
+    document.getElementById("formModal").classList.add("show");
+}
+
+function openForm() {
+    document.getElementById("formTitle").textContent = "新增车型";
+    document.getElementById("inputModel").value = "";
+    document.getElementById("inputContent").value = "";
+    document.getElementById("inputRemark").value = "";
+    document.getElementById("inputIndex").value = -1;
     document.getElementById("formModal").classList.add("show");
 }
 
@@ -369,7 +392,7 @@ function exportJSON() {
     download(JSON.stringify(loadData(), null, 2), "车型信息表.json", "application/json");
 }
 function exportTXT() {
-    const txt = loadData().map(r => r.join("\t")).join("\n");
+    const txt = loadData().map(m => m.join("\t")).join("\n");
     download(txt, "车型信息表.txt", "text/plain");
 }
 function download(content, name, type) {
@@ -414,6 +437,13 @@ function clearAll() {
 
 document.getElementById("searchInput").addEventListener("input", renderList);
 renderList();
+
+// 点击遮罩关闭弹窗
+document.querySelectorAll(".modal").forEach(m => {
+    m.addEventListener("click", function(e) {
+        if (e.target === this) closeModal(this.id);
+    });
+});
 </script>
 
 </body>
