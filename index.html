@@ -1,105 +1,420 @@
+
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>车型信息表</title>
 <style>
-body { font-family: sans-serif; padding: 20px; background: #f5f7fa; }
-h1 { color: #1a73e8; }
-table { width: 100%; border-collapse: collapse; background: #fff; margin-top: 20px; box-shadow: 0 2px 8px rgba(0,0,0,.08); }
-th, td { padding: 10px; border: 1px solid #ddd; text-align: left; }
-th { background: #1a73e8; color: #fff; }
-button { padding: 8px 12px; margin: 5px; border: none; border-radius: 5px; cursor: pointer; }
-.add { background: #1a73e8; color: #fff; }
-.edit { background: #ffc107; }
-.delete { background: #dc3545; color: #fff; }
-input, textarea { width: 95%; padding: 8px; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px; }
-.modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); justify-content: center; align-items: center; }
-.modal-content { background: #fff; padding: 20px; border-radius: 8px; width: 90%; max-width: 400px; }
+:root {
+    --primary: #1a73e8;
+    --bg: #f5f5f5;
+    --card: #ffffff;
+    --text: #333;
+    --border: #e0e0e0;
+    --danger: #d93025;
+}
+* { box-sizing: border-box; }
+body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding-bottom: 80px;
+    -webkit-tap-highlight-color: transparent;
+}
+.header {
+    background: var(--primary);
+    color: white;
+    padding: 16px;
+    font-size: 20px;
+    font-weight: 600;
+    text-align: center;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+.search-box {
+    padding: 12px;
+    background: white;
+}
+.search-box input {
+    width: 100%;
+    padding: 12px;
+    font-size: 16px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+}
+.tab-content { display: none; padding: 12px; }
+.tab-content.active { display: block; }
+
+/* 卡片 */
+.card {
+    background: var(--card);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 12px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+}
+.card h3 { margin: 0 0 8px; font-size: 18px; }
+.card p { margin: 4px 0; font-size: 14px; color: #666; }
+.card-actions { margin-top: 10px; }
+.card-actions span {
+    color: var(--primary);
+    margin-right: 12px;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+/* 底部导航 */
+.bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 64px;
+    background: white;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    z-index: 100;
+    padding-bottom: env(safe-area-inset-bottom);
+}
+.nav-item {
+    text-align: center;
+    font-size: 12px;
+    color: #666;
+    cursor: pointer;
+}
+.nav-item.active { color: var(--primary); }
+.nav-item span { font-size: 22px; display: block; }
+
+/* 弹窗 */
+.modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    justify-content: center;
+    align-items: flex-end;
+    z-index: 200;
+}
+.modal.show { display: flex; }
+.modal-content {
+    background: white;
+    width: 100%;
+    max-height: 85vh;
+    border-radius: 16px 16px 0 0;
+    padding: 20px;
+    overflow: auto;
+}
+.modal-content h3 { margin-top: 0; }
+.modal-content input, .modal-content textarea {
+    width: 100%;
+    margin-bottom: 12px;
+    padding: 12px;
+    font-size: 16px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+}
+.modal-content button {
+    width: 100%;
+    padding: 14px;
+    font-size: 16px;
+    border-radius: 10px;
+    border: none;
+    background: var(--primary);
+    color: white;
+    margin-bottom: 10px;
+}
+.danger { background: var(--danger) !important; }
+
+/* Toast */
+.toast {
+    position: fixed;
+    bottom: 90px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.85);
+    color: white;
+    padding: 12px 20px;
+    border-radius: 24px;
+    font-size: 14px;
+    z-index: 300;
+    display: none;
+}
+.toast.show { display: block; }
+
+/* FAB */
+.fab {
+    position: fixed;
+    right: 20px;
+    bottom: 90px;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: var(--primary);
+    color: white;
+    font-size: 28px;
+    border: none;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    z-index: 150;
+    cursor: pointer;
+}
+
+/* 统计页 */
+.stat-item {
+    background: white;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 12px;
+}
+.stat-item h4 { margin: 0 0 8px; }
+.stat-item button { margin-top: 8px; }
 </style>
 </head>
 <body>
 
-<h1>🚗 车型信息表</h1>
-<button class="add" onclick="openModal()">＋ 新增</button>
-<table>
-  <thead><tr><th>车型</th><th>内容</th><th>备注</th><th>操作</th></tr></thead>
-  <tbody id="tbody"></tbody>
-</table>
+<div class="header">🚗 车型信息表</div>
 
-<div class="modal" id="modal">
-  <div class="modal-content">
-    <h3 id="modalTitle">新增</h3>
-    <input id="car" placeholder="车型">
-    <textarea id="content" rows="3" placeholder="内容"></textarea>
-    <input id="note" placeholder="备注">
-    <div style="text-align:right; margin-top:15px;">
-      <button onclick="closeModal()">取消</button>
-      <button class="add" onclick="save()">保存</button>
-    </div>
-  </div>
+<div class="search-box">
+    <input id="searchInput" placeholder="🔍 搜索车型 / 内容 / 备注...">
 </div>
 
+<!-- 数据页 -->
+<div class="tab-content active" id="tabData">
+    <div id="list"></div>
+</div>
+
+<!-- 统计页 -->
+<div class="tab-content" id="tabStats">
+    <div class="stat-item">
+        <h4>📊 数据总览</h4>
+        <p id="statsText"></p >
+    </div>
+    <div class="stat-item">
+        <h4>📤 导出数据</h4>
+        <button class="btn" onclick="exportCSV()">导出 CSV</button>
+        <button class="btn" onclick="exportJSON()">导出 JSON</button>
+        <button class="btn" onclick="exportTXT()">导出 TXT</button>
+    </div>
+    <div class="stat-item">
+        <h4>📥 导入数据</h4>
+        <input type="file" accept=".json" onchange="importJSON(event)">
+        <p style="font-size:12px;color:#888">支持追加或覆盖</p >
+    </div>
+</div>
+
+<!-- 设置页 -->
+<div class="tab-content" id="tabSettings">
+    <div class="stat-item">
+        <h4>⚙️ 设置</h4>
+        <button class="btn" onclick="clearSearch()">清除搜索</button>
+        <button class="btn danger" onclick="clearAll()">清空所有数据</button>
+        <p id="storageInfo" style="font-size:12px;color:#888;margin-top:10px;"></p >
+    </div>
+</div>
+
+<!-- 底部导航 -->
+<div class="bottom-nav">
+    <div class="nav-item active" onclick="switchTab('tabData', this)">
+        <span>📋</span>数据
+    </div>
+    <div class="nav-item" onclick="switchTab('tabStats', this)">
+        <span>📊</span>统计
+    </div>
+    <div class="nav-item" onclick="switchTab('tabSettings', this)">
+        <span>⚙️</span>设置
+    </div>
+</div>
+
+<!-- FAB -->
+<button class="fab" onclick="openForm()">＋</button>
+
+<!-- 表单弹窗 -->
+<div class="modal" id="formModal" onclick="closeModal('formModal')">
+    <div class="modal-content" onclick="event.stopPropagation()">
+        <h3 id="formTitle">新增车型</h3>
+        <input id="inputModel" placeholder="车型">
+        <textarea id="inputContent" rows="3" placeholder="内容"></textarea>
+        <textarea id="inputRemark" rows="2" placeholder="备注"></textarea>
+        <input id="inputIndex" type="hidden">
+        <button onclick="saveRow()">保存</button>
+        <button onclick="closeModal('formModal')" style="background:#ccc;color:#333">取消</button>
+    </div>
+</div>
+
+<!-- 查看弹窗 -->
+<div class="modal" id="viewModal" onclick="closeModal('viewModal')">
+    <div class="modal-content" onclick="event.stopPropagation()">
+        <h3>详情</h3>
+        <div id="viewText"></div>
+        <button onclick="closeModal('viewModal')" style="background:#ccc;color:#333">关闭</button>
+    </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
 <script>
-let data = JSON.parse(localStorage.getItem('carTable') || '[]');
-let editId = null;
+const KEY = "car_app_data";
 
-function render() {
-  const tb = document.getElementById('tbody');
-  tb.innerHTML = data.map(r => `
-    <tr>
-      <td>${r.car}</td>
-      <td>${r.content}</td>
-      <td>${r.note}</td>
-      <td>
-        <button class="edit" onclick="edit('${r.id}')">编辑</button>
-        <button class="delete" onclick="del('${r.id}')">删除</button>
-      </td>
-    </tr>
-  `).join('');
+function toast(msg) {
+    const t = document.getElementById("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    setTimeout(() => t.classList.remove("show"), 2000);
 }
-render();
 
-function openModal() {
-  editId = null;
-  document.getElementById('modalTitle').innerText = '新增';
-  document.getElementById('car').value = '';
-  document.getElementById('content').value = '';
-  document.getElementById('note').value = '';
-  document.getElementById('modal').style.display = 'flex';
+function loadData() {
+    return JSON.parse(localStorage.getItem(KEY) || "[]");
 }
-function closeModal() { document.getElementById('modal').style.display = 'none'; }
-function save() {
-  const car = document.getElementById('car').value.trim();
-  const content = document.getElementById('content').value.trim();
-  const note = document.getElementById('note').value.trim();
-  if (!car || !content) return alert('车型和内容不能为空');
-  if (editId) {
-    const r = data.find(x => x.id === editId);
-    Object.assign(r, {car, content, note});
-  } else {
-    data.push({id: Date.now().toString(), car, content, note});
-  }
-  localStorage.setItem('carTable', JSON.stringify(data));
-  render(); closeModal();
+function saveData(data) {
+    localStorage.setItem(KEY, JSON.stringify(data));
 }
-function edit(id) {
-  editId = id;
-  const r = data.find(x => x.id === id);
-  document.getElementById('modalTitle').innerText = '编辑';
-  document.getElementById('car').value = r.car;
-  document.getElementById('content').value = r.content;
-  document.getElementById('note').value = r.note;
-  document.getElementById('modal').style.display = 'flex';
+
+function renderList() {
+    const data = loadData();
+    const list = document.getElementById("list");
+    const kw = document.getElementById("searchInput").value.toLowerCase();
+    list.innerHTML = "";
+    data.forEach((row, i) => {
+        if (kw && !row.join("").toLowerCase().includes(kw)) return;
+        const div = document.createElement("div");
+        div.className = "card";
+        div.innerHTML = `
+            <h3 onclick="openView('${encodeURIComponent(row[0])}')">${row[0]}</h3>
+            <p onclick="openView('${encodeURIComponent(row[1])}')">${row[1].slice(0, 50)}</p >
+            <p onclick="openView('${encodeURIComponent(row[2])}')">${row[2].slice(0, 50)}</p >
+            <div class="card-actions">
+                <span onclick="editRow(${i})">编辑</span>
+                <span onclick="deleteRow(${i})">删除</span>
+            </div>
+        `;
+        list.appendChild(div);
+    });
+    document.getElementById("statsText").textContent = `共 ${data.length} 条数据`;
+    document.getElementById("storageInfo").textContent =
+        `已使用 ${JSON.stringify(data).length} 字节本地存储`;
 }
-function del(id) {
-  if (confirm('确定删除？')) {
-    data = data.filter(x => x.id !== id);
-    localStorage.setItem('carTable', JSON.stringify(data));
-    render();
-  }
+
+function openView(text) {
+    document.getElementById("viewText").textContent = decodeURIComponent(text);
+    document.getElementById("viewModal").classList.add("show");
 }
+
+function openForm(i = -1) {
+    if (i >= 0) {
+        const row = loadData()[i];
+        document.getElementById("formTitle").textContent = "编辑车型";
+        document.getElementById("inputModel").value = row[0];
+        document.getElementById("inputContent").value = row[1];
+        document.getElementById("inputRemark").value = row[2];
+        document.getElementById("inputIndex").value = i;
+    } else {
+        document.getElementById("formTitle").textContent = "新增车型";
+        document.getElementById("inputModel").value = "";
+        document.getElementById("inputContent").value = "";
+        document.getElementById("inputRemark").value = "";
+        document.getElementById("inputIndex").value = -1;
+    }
+    document.getElementById("formModal").classList.add("show");
+}
+
+function saveRow() {
+    const model = document.getElementById("inputModel").value.trim();
+    if (!model) return toast("车型不能为空");
+    const data = loadData();
+    const row = [
+        model,
+        document.getElementById("inputContent").value.trim(),
+        document.getElementById("inputRemark").value.trim()
+    ];
+    const i = parseInt(document.getElementById("inputIndex").value);
+    if (i >= 0) data[i] = row;
+    else data.push(row);
+    saveData(data);
+    renderList();
+    closeModal("formModal");
+    toast("保存成功");
+}
+
+function deleteRow(i) {
+    if (!confirm("确定删除这条数据吗？")) return;
+    const data = loadData();
+    data.splice(i, 1);
+    saveData(data);
+    renderList();
+    toast("已删除");
+}
+
+function closeModal(id) {
+    document.getElementById(id).classList.remove("show");
+}
+
+function switchTab(id, el) {
+    document.querySelectorAll(".tab-content").forEach(t => t.classList.remove("active"));
+    document.getElementById(id).classList.add("active");
+    document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
+    el.classList.add("active");
+}
+
+function exportCSV() {
+    const data = loadData();
+    let csv = "\ufeff车型,内容,备注\n" + data.map(r => r.map(c => `"${c}"`).join(",")).join("\n");
+    download(csv, "车型信息表.csv", "text/csv");
+}
+function exportJSON() {
+    download(JSON.stringify(loadData(), null, 2), "车型信息表.json", "application/json");
+}
+function exportTXT() {
+    const txt = loadData().map(r => r.join("\t")).join("\n");
+    download(txt, "车型信息表.txt", "text/plain");
+}
+function download(content, name, type) {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([content], {type: type}));
+    a.download = name;
+    a.click();
+}
+
+function importJSON(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+        try {
+            const newData = JSON.parse(reader.result);
+            const oldData = loadData();
+            const merged = confirm("追加数据？\n确定=追加，取消=覆盖") ? oldData.concat(newData) : newData;
+            saveData(merged);
+            renderList();
+            toast("导入成功");
+        } catch {
+            toast("文件格式错误");
+        }
+    };
+    reader.readAsText(file);
+}
+
+function clearSearch() {
+    document.getElementById("searchInput").value = "";
+    renderList();
+    toast("已清除搜索");
+}
+
+function clearAll() {
+    if (confirm("确定清空所有数据吗？此操作不可恢复！")) {
+        localStorage.removeItem(KEY);
+        renderList();
+        toast("已清空数据");
+    }
+}
+
+document.getElementById("searchInput").addEventListener("input", renderList);
+renderList();
 </script>
+
 </body>
 </html>
