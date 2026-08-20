@@ -4,10 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>车型信息表</title>
-
-<!-- Excel 解析 / 生成库 -->
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-
 <style>
 :root {
     --primary: #1a73e8;
@@ -109,7 +106,7 @@ body {
     display: flex;
     justify-content: space-around;
     align-items: center;
-    z-index: 100;
+    z-index:: 100;
     padding-bottom: env(safe-area-inset-bottom);
 }
 .nav-item {
@@ -160,7 +157,6 @@ body {
 }
 .danger { background: var(--danger) !important; }
 .safe { background: var(--safe) !important; }
-.warn { background: var(--warn) !important; color: #333 !important; }
 .cancel { background: #ccc !important; color: #333 !important; }
 
 .toast {
@@ -258,6 +254,7 @@ body {
 .import-preview .add { color: var(--safe); }
 .import-preview .update { color: var(--warn); }
 .import-preview .skip { color: #666; }
+.import-preview .keep { color: var(--primary); font-weight: 500; }
 </style>
 </head>
 <body>
@@ -282,9 +279,8 @@ body {
     </div>
     <div class="stat-item">
         <h4>📤 导出数据</h4>
-        <button onclick="exportExcel()">导出 Excel (.xlsx)</button>
-        <button onclick="exportJSON()">导出 JSON</button>
-        <button onclick="exportCSV()">导出 CSV</button>
+        <button onclick="exportExcel()">📊 导出 Excel (.xlsx)</button>
+        <button onclick="exportTXT()">📄 导出 TXT</button>
     </div>
     <div class="stat-item">
         <h4>📥 导入 Excel</h4>
@@ -351,7 +347,6 @@ body {
 
 <button class="fab" onclick="openForm()">＋</button>
 
-<!-- 表单弹窗 -->
 <div class="modal" id="formModal">
     <div class="modal-content" onclick="event.stopPropagation()">
         <h3 id="formTitle">新增车型</h3>
@@ -364,7 +359,6 @@ body {
     </div>
 </div>
 
-<!-- 查看弹窗 -->
 <div class="modal" id="viewModal">
     <div class="modal-content" onclick="event.stopPropagation()">
         <h3>详情</h3>
@@ -375,18 +369,15 @@ body {
     </div>
 </div>
 
-<!-- 导入预览弹窗 -->
 <div class="modal" id="importModal">
     <div class="modal-content" onclick="event.stopPropagation()">
         <h3>📥 导入预览</h3>
         <div id="importPreview" class="import-preview"></div>
         <button class="safe" onclick="confirmImport()">✅ 确认导入</button>
-        <button class="warn" onclick="importMode='overwrite';confirmImport()">⚠️ 覆盖导入</button>
         <button class="cancel" onclick="closeModal('importModal')">取消</button>
     </div>
 </div>
 
-<!-- 账号表单 -->
 <div class="modal" id="accountModal">
     <div class="modal-content" onclick="event.stopPropagation()">
         <h3 id="accountFormTitle">新建账号</h3>
@@ -407,7 +398,6 @@ const CURRENT_ACCOUNT_KEY = "car_app_current_account";
 
 let currentAccountId = null;
 let pendingImportData = null;
-let importMode = 'merge';
 
 /* ========= 工具 ========= */
 function toast(msg) {
@@ -451,11 +441,7 @@ function saveAccounts(accounts) {
 function initAccounts() {
     let accounts = loadAccounts();
     if (accounts.length === 0) {
-        accounts = [{
-            id: Date.now().toString(),
-            name: "默认账号",
-            color: "#1a73e8"
-        }];
+        accounts = [{ id: Date.now().toString(), name: "默认账号", color: "#1a73e8" }];
         saveAccounts(accounts);
     }
     currentAccountId = localStorage.getItem(CURRENT_ACCOUNT_KEY) || accounts[0].id;
@@ -553,9 +539,6 @@ function updateAccountBadge() {
     const badge = document.getElementById("currentAccountBadge");
     badge.textContent = acc ? acc.name : "";
     badge.style.background = acc ? acc.color + "cc" : "";
-    document.querySelectorAll('.card').forEach(card => {
-        card.style.borderLeftColor = acc ? acc.color : "var(--primary)";
-    });
 }
 
 /* ========= 手动备份 ========= */
@@ -620,11 +603,7 @@ function deleteBackup(id) {
 /* ========= 回收站 ========= */
 function moveToTrash(row, index) {
     const trash = JSON.parse(localStorage.getItem(getTrashKey()) || "[]");
-    trash.unshift({
-        ...row,
-        deletedAt: Date.now(),
-        originalIndex: index
-    });
+    trash.unshift({ ...row, deletedAt: Date.now(), originalIndex: index });
     localStorage.setItem(getTrashKey(), JSON.stringify(trash));
 }
 
@@ -781,7 +760,7 @@ function deleteRow(i) {
     toast("已移入回收站");
 }
 
-/* ========= Excel 导入 ========= */
+/* ========= Excel 导入（仅智能合并） ========= */
 function handleExcelImport(e) {
     const file = e.target.files[0];
     if (!file) return;
@@ -808,20 +787,24 @@ function handleExcelImport(e) {
 function showImportPreview(newData) {
     const oldData = loadData();
     let add = 0, update = 0, skip = 0;
+    const normalize = s => s.trim().toLowerCase();
+    const oldMap = {};
+    oldData.forEach(r => oldMap[normalize(r[0])] = r);
+
     newData.forEach(nr => {
-        const exist = oldData.find(r => r[0] === nr[0]);
+        const key = normalize(nr[0]);
+        const exist = oldMap[key];
         if (!exist) add++;
         else if (exist[1] !== nr[1] || exist[2] !== nr[2]) update++;
         else skip++;
     });
+
     pendingImportData = newData;
     document.getElementById("importPreview").innerHTML = `
         <p class="add">🆕 新增：${add} 条</p>
         <p class="update">🔄 更新：${update} 条</p>
         <p class="skip">— 不变：${skip} 条</p>
-        <p style="color:#d93025;font-size:13px;margin-top:10px;">
-            建议先手动备份，确认无误后再导入。
-        </p>
+        <p class="keep">🔒 保留 ${oldData.length} 条旧数据（不在 Excel 中的不会被删除）</p>
     `;
     document.getElementById("importModal").classList.add("show");
 }
@@ -829,49 +812,32 @@ function showImportPreview(newData) {
 function confirmImport() {
     if (!pendingImportData) return;
     const oldData = loadData();
-    let result = importMode === 'overwrite' ? [] : [...oldData];
-    if (importMode !== 'overwrite') {
-        const map = {};
-        oldData.forEach(r => map[r[0]] = r);
-        pendingImportData.forEach(nr => map[nr[0]] = nr);
-        result = Object.values(map);
-    } else {
-        result = pendingImportData;
-    }
-    saveData(result);
+    const normalize = s => s.trim().toLowerCase();
+    const map = {};
+    oldData.forEach(r => map[normalize(r[0])] = r);
+    pendingImportData.forEach(nr => map[normalize(nr[0])] = nr);
+    saveData(Object.values(map));
     renderList();
     closeModal("importModal");
-    toast("导入完成");
+    toast("导入完成（旧数据已保留）");
     pendingImportData = null;
-    importMode = 'merge';
 }
 
 /* ========= 导出 ========= */
 function exportExcel() {
     const data = loadData();
-    const ws = XLSX.utils.aoa_to_sheet([
-        ["车型", "内容", "备注"],
-        ...data
-    ]);
+    const ws = XLSX.utils.aoa_to_sheet([["车型", "内容", "备注"], ...data]);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "车型信息");
     XLSX.writeFile(wb, "车型信息表.xlsx");
 }
 
-function exportJSON() {
-    download(JSON.stringify(loadData(), null, 2), "车型信息表.json", "application/json");
-}
-
-function exportCSV() {
+function exportTXT() {
     const data = loadData();
-    let csv = "\ufeff车型,内容,备注\n" + data.map(r => r.map(c => `"${c}"`).join(",")).join("\n");
-    download(csv, "车型信息表.csv", "text/csv");
-}
-
-function download(content, name, type) {
+    const txt = data.map(r => r.join("\t")).join("\n");
     const a = document.createElement("a");
-    a.href = URL.createObjectURL(new Blob([content], {type: type}));
-    a.download = name;
+    a.href = URL.createObjectURL(new Blob([txt], { type: "text/plain" }));
+    a.download = "车型信息表.txt";
     a.click();
 }
 
