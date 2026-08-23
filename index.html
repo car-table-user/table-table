@@ -2,53 +2,35 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>车型信息表</title>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
-:root {
-    --primary: #1a73e8;
-    --bg: #f5f5f5;
-    --card: #ffffff;
-    --text: #333;
-    --border: #e0e0e0;
-    --danger: #d93025;
-    --safe: #1e8e3e;
-    --warn: #f9ab00;
-}
 * { box-sizing: border-box; }
 body {
     margin: 0;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    background: var(--bg);
-    color: var(--text);
+    background: #f5f5f5;
+    color: #333;
     padding-bottom: 80px;
-    -webkit-tap-highlight-color: transparent;
 }
 .header {
-    background: var(--primary);
+    background: #1a73e8;
     color: white;
-    padding: 12px 16px;
+    padding: 14px 16px;
     font-size: 20px;
     font-weight: 600;
     text-align: center;
     position: sticky;
     top: 0;
     z-index: 10;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
 }
 .account-badge {
     font-size: 12px;
     background: rgba(255,255,255,0.25);
     padding: 2px 10px;
     border-radius: 20px;
-    max-width: 140px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    margin-left: 8px;
 }
 .search-box {
     padding: 12px;
@@ -59,24 +41,22 @@ body {
     padding: 12px;
     font-size: 16px;
     border-radius: 10px;
-    border: 1px solid var(--border);
+    border: 1px solid #ddd;
 }
 .tab-content { display: none; padding: 12px; }
 .tab-content.active { display: block; }
-
-/* 数据卡片 */
 .card {
-    background: var(--card);
+    background: white;
     border-radius: 12px;
     padding: 16px;
     margin-bottom: 12px;
     box-shadow: 0 2px 6px rgba(0,0,0,0.08);
-    border-left: 4px solid var(--primary);
+    border-left: 4px solid #1a73e8;
 }
 .card h3 {
     margin: 0 0 8px;
     font-size: 18px;
-    color: var(--primary);
+    color: #1a73e8;
 }
 .card p {
     margin: 4px 0;
@@ -86,17 +66,18 @@ body {
 .card-actions {
     margin-top: 12px;
     display: flex;
-    gap: 16px;
+    gap: 12px;
 }
-.card-actions span {
+.card-actions button {
+    flex: 1;
+    padding: 12px;
     font-size: 14px;
-    font-weight: 500;
+    border: none;
+    border-radius: 8px;
     cursor: pointer;
 }
-.card-actions .edit { color: var(--primary); }
-.card-actions .delete { color: var(--danger); }
-
-/* 底部导航 */
+.btn-edit { background: #1a73e8; color: white; }
+.btn-del { background: #d93025; color: white; }
 .bottom-nav {
     position: fixed;
     bottom: 0;
@@ -104,12 +85,11 @@ body {
     right: 0;
     height: 64px;
     background: white;
-    border-top: 1px solid var(--border);
+    border-top: 1px solid #e0e0e0;
     display: flex;
     justify-content: space-around;
     align-items: center;
     z-index: 100;
-    padding-bottom: env(safe-area-inset-bottom);
 }
 .nav-item {
     text-align: center;
@@ -117,10 +97,23 @@ body {
     color: #666;
     cursor: pointer;
 }
-.nav-item.active { color: var(--primary); }
+.nav-item.active { color: #1a73e8; font-weight: 600; }
 .nav-item span { font-size: 22px; display: block; }
-
-/* 弹窗 */
+.fab {
+    position: fixed;
+    right: 20px;
+    bottom: 90px;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: #1a73e8;
+    color: white;
+    font-size: 28px;
+    border: none;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    z-index: 150;
+    cursor: pointer;
+}
 .modal {
     display: none;
     position: fixed;
@@ -138,15 +131,20 @@ body {
     border-radius: 16px 16px 0 0;
     padding: 20px;
     overflow: auto;
+    transform: translateY(100%);
+    transition: transform 0.3s ease;
+}
+.modal.show .modal-content{
+    transform: translateY(0);
 }
 .modal-content h3 { margin-top: 0; }
-.modal-content input, .modal-content textarea, .modal-content select {
+.modal-content input, .modal-content textarea {
     width: 100%;
     margin-bottom: 12px;
     padding: 12px;
     font-size: 16px;
     border-radius: 10px;
-    border: 1px solid var(--border);
+    border: 1px solid #ddd;
 }
 .modal-content button {
     width: 100%;
@@ -154,15 +152,13 @@ body {
     font-size: 16px;
     border-radius: 10px;
     border: none;
-    background: var(--primary);
+    background: #1a73e8;
     color: white;
     margin-bottom: 10px;
 }
-.danger { background: var(--danger) !important; }
-.safe { background: var(--safe) !important; }
-.cancel { background: #ccc !important; color: #333 !important; }
-
-/* Toast */
+.btn-cancel { background: #ccc !important; color: #333 !important; }
+.btn-safe { background: #1e8e3e !important; }
+.btn-danger { background: #d93025 !important; }
 .toast {
     position: fixed;
     bottom: 90px;
@@ -177,858 +173,498 @@ body {
     display: none;
 }
 .toast.show { display: block; }
-
-/* FAB */
-.fab {
-    position: fixed;
-    right: 20px;
-    bottom: 90px;
-    width: 56px;
-    height: 56px;
-    border-radius: 50%;
-    background: var(--primary);
-    color: white;
-    font-size: 28px;
-    border: none;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-    z-index: 150;
-    cursor: pointer;
-}
-
-/* 统计面板 */
-.stat-item {
+.panel {
     background: white;
     border-radius: 12px;
     padding: 16px;
     margin-bottom: 12px;
 }
-.stat-item h4 { margin: 0 0 8px; }
-.stat-item p { margin: 4px 0; font-size: 14px; color: #555; }
-.stat-item button { margin-top: 8px; }
-
-/* 备份/回收站/账号条目 */
-.backup-item, .trash-item {
-    background: #fafafa;
-    border-radius: 10px;
-    padding: 12px;
-    margin-bottom: 10px;
-    font-size: 14px;
+.empty-state {
+    text-align: center;
+    color: #999;
+    padding: 40px 20px;
 }
-.backup-item span, .trash-item span {
-    color: #666;
-    font-size: 12px;
+.preview-item{
+    background:#f5f5f5;
+    padding:8px;
+    border-radius:6px;
+    margin:4px 0;
+    font-size:14px;
 }
-.backup-actions, .trash-actions {
-    margin-top: 8px;
-    display: flex;
-    gap: 10px;
-}
-.backup-actions button, .trash-actions button {
-    flex: 1;
-    padding: 8px;
-    font-size: 13px;
-}
-
-.account-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    background: white;
-    border-radius: 10px;
-    padding: 12px;
-    margin-bottom: 10px;
-}
-.account-color {
-    width: 14px;
-    height: 14px;
-    border-radius: 50%;
-}
-.account-info { flex: 1; }
-.account-actions { display: flex; gap: 8px; }
-.account-actions button { padding: 6px 10px; font-size: 12px; }
-
-/* 导入预览 */
-.import-preview { font-size: 14px; }
-.import-preview p { margin: 6px 0; }
-.import-preview .add { color: var(--safe); }
-.import-preview .keep { color: var(--primary); font-weight: 500; }
 </style>
 </head>
 <body>
-
-<!-- ===== 顶部标题栏 ===== -->
 <div class="header">
     🚗 车型信息表
-    <div class="account-badge" id="currentAccountBadge"></div>
+    <span class="account-badge" id="accountBadge">默认账号</span>
 </div>
-
-<!-- ===== 搜索框 ===== -->
 <div class="search-box">
     <input id="searchInput" placeholder="🔍 搜索车型 / 内容 / 备注...">
 </div>
-
-<!-- ===== 数据列表页 ===== -->
 <div class="tab-content active" id="tabData">
     <div id="list"></div>
 </div>
-
-<!-- ===== 统计/导入/导出页 ===== -->
 <div class="tab-content" id="tabStats">
-    <div class="stat-item">
+    <div class="panel">
         <h4>📊 数据总览</h4>
         <p id="statsText"></p>
     </div>
-    <div class="stat-item">
-        <h4>📤 导出数据</h4>
-        <p style="font-size:13px;color:#666;">Excel 可用于再次导入，TXT 方便快速查看</p>
-        <button onclick="exportExcel()">📊 导出 Excel (.xlsx)</button>
-        <button onclick="exportTXT()">📄 导出 TXT</button>
+    <div class="panel">
+        <h4>📤 导出</h4>
+        <button onclick="App.exportExcel()">📊 导出 Excel</button>
+        <button onclick="App.exportTXT()" style="margin-top:8px;">📄 导出 TXT</button>
     </div>
-    <div class="stat-item">
-        <h4>📥 导入 Excel</h4>
-        <p style="font-size:13px;color:#666;">A列=车型 B列=内容 C列=备注<br>导入方式：直接新增（不覆盖旧数据）</p>
-        <input type="file" accept=".xlsx,.xls" onchange="handleExcelImport(event)">
-        <p style="font-size:12px;color:#888">💡 建议导入前先手动备份</p>
+    <div class="panel">
+        <h4>📥 导入 Excel（直接新增）</h4>
+        <input type="file" accept=".xlsx,.xls" onchange="App.handleImport(event)">
     </div>
 </div>
-
-<!-- ===== 备份页 ===== -->
 <div class="tab-content" id="tabBackup">
-    <div class="stat-item">
+    <div class="panel">
         <h4>📦 手动备份</h4>
-        <p style="font-size:13px;color:#666;">备份完全由你控制，不会自动创建。</p>
-        <button class="safe" onclick="manualBackup()">📸 手动备份当前数据</button>
+        <button class="btn-safe" onclick="App.manualBackup()">📸 手动备份</button>
     </div>
     <div id="backupList"></div>
 </div>
-
-<!-- ===== 回收站页 ===== -->
 <div class="tab-content" id="tabTrash">
-    <div class="stat-item">
-        <h4>🗑️ 回收站</h4>
-        <p style="font-size:13px;color:#666;">删除的数据会在这里保留 7 天，超时自动清除。</p>
-    </div>
     <div id="trashList"></div>
 </div>
-
-<!-- ===== 账号管理页 ===== -->
 <div class="tab-content" id="tabAccount">
-    <div class="stat-item">
-        <h4>👤 多账号管理</h4>
-        <p style="font-size:13px;color:#666;">不同账号数据完全隔离，互不干扰。</p>
-        <button onclick="openAccountForm()">＋ 新建账号</button>
+    <div class="panel">
+        <h4>👤 账号管理</h4>
+        <input id="newAccountName" placeholder="新账号名" style="margin-bottom:8px;">
+        <button onclick="App.createAccount()">＋ 新建账号</button>
     </div>
     <div id="accountList"></div>
 </div>
-
-<!-- ===== 设置页 ===== -->
 <div class="tab-content" id="tabSettings">
-    <div class="stat-item">
+    <div class="panel">
         <h4>⚙️ 设置</h4>
-        <button onclick="clearSearch()">清除搜索</button>
-        <button class="danger" onclick="clearAll()">清空当前账号数据</button>
-        <p id="storageInfo" style="font-size:12px;color:#888;margin-top:10px;"></p>
+        <button onclick="App.clearSearch()">清除搜索</button>
+        <button class="btn-danger" onclick="App.clearAll()" style="margin-top:8px;">🗑️ 清空数据</button>
     </div>
 </div>
-
-<!-- ===== 底部导航栏 ===== -->
-<div class="bottom-nav">
-    <div class="nav-item active" onclick="switchTab('tabData', this)">
-        <span>📋</span>数据
-    </div>
-    <div class="nav-item" onclick="switchTab('tabStats', this)">
-        <span>📊</span>统计
-    </div>
-    <div class="nav-item" onclick="switchTab('tabBackup', this)">
-        <span>📦</span>备份
-    </div>
-    <div class="nav-item" onclick="switchTab('tabTrash', this)">
-        <span>🗑️</span>回收站
-    </div>
-    <div class="nav-item" onclick="switchTab('tabAccount', this)">
-        <span>👤</span>账号
-    </div>
-    <div class="nav-item" onclick="switchTab('tabSettings', this)">
-        <span>⚙️</span>设置
-    </div>
-</div>
-
-<!-- ===== 右下角新增按钮 ===== -->
-<button class="fab" onclick="openForm()">＋</button>
-
-<!-- ===== 表单弹窗（新增/编辑） ===== -->
+<button class="fab" onclick="App.openForm()">＋</button>
+<!-- 表单弹窗 -->
 <div class="modal" id="formModal">
-    <div class="modal-content" onclick="event.stopPropagation()">
+    <div class="modal-content">
         <h3 id="formTitle">新增车型</h3>
-        <input id="inputModel" placeholder="车型">
+        <input id="inputModel" placeholder="车型 *必填">
         <textarea id="inputContent" rows="3" placeholder="内容"></textarea>
         <textarea id="inputRemark" rows="2" placeholder="备注"></textarea>
         <input id="inputIndex" type="hidden">
-        <button onclick="saveRow()">保存</button>
-        <button class="cancel" onclick="closeModal('formModal')">取消</button>
+        <button onclick="App.saveRow()">保存</button>
+        <button class="btn-cancel" onclick="App.closeModal('formModal')">取消</button>
     </div>
 </div>
-
-<!-- ===== 详情查看弹窗 ===== -->
-<div class="modal" id="viewModal">
-    <div class="modal-content" onclick="event.stopPropagation()">
-        <h3>📄 详情</h3>
-        <div id="viewText"></div>
-        <button onclick="copyViewText()">📋 复制内容</button>
-        <button onclick="doEditFromView()">✏️ 编辑</button>
-        <button class="cancel" onclick="closeModal('viewModal')">关闭</button>
-    </div>
-</div>
-
-<!-- ===== 导入预览弹窗 ===== -->
+<!-- 导入预览 -->
 <div class="modal" id="importModal">
-    <div class="modal-content" onclick="event.stopPropagation()">
+    <div class="modal-content">
         <h3>📥 导入预览</h3>
-        <div id="importPreview" class="import-preview"></div>
-        <button class="safe" onclick="confirmImport()">✅ 确认新增</button>
-        <button class="cancel" onclick="closeModal('importModal')">取消</button>
+        <div id="importPreview"></div>
+        <button class="btn-safe" onclick="App.confirmImport()">✅ 确认导入</button>
+        <button class="btn-cancel" onclick="App.closeModal('importModal')">取消</button>
     </div>
 </div>
-
-<!-- ===== 账号表单弹窗 ===== -->
-<div class="modal" id="accountModal">
-    <div class="modal-content" onclick="event.stopPropagation()">
-        <h3 id="accountFormTitle">新建账号</h3>
-        <input id="accountName" placeholder="账号名称">
-        <input id="accountColor" type="color" value="#1a73e8">
-        <input id="accountId" type="hidden">
-        <button onclick="saveAccount()">保存</button>
-        <button class="cancel" onclick="closeModal('accountModal')">取消</button>
-    </div>
-</div>
-
-<!-- ===== Toast 提示 ===== -->
 <div class="toast" id="toast"></div>
 
+<!--底部导航【修复】补齐data-tab属性-->
+<div class="bottom-nav">
+    <div class="nav-item active" data-tab="tabData">
+        <span>📋</span>列表
+    </div>
+    <div class="nav-item" data-tab="tabStats">
+        <span>📊</span>统计
+    </div>
+    <div class="nav-item" data-tab="tabBackup">
+        <span>💾</span>备份
+    </div>
+    <div class="nav-item" data-tab="tabTrash">
+        <span>🗑️</span>回收站
+    </div>
+    <div class="nav-item" data-tab="tabAccount">
+        <span>👤</span>账号
+    </div>
+</div>
+
 <script>
-/* ============================================================
-   车型信息表 - 完整版
-   功能：CRUD / 搜索 / Excel导入(直接新增) / Excel+TXT导出
-         / 手动备份 / 回收站7天 / 多账号隔离 / 详情查看
-   ============================================================ */
-
-/* ========= 存储 Key 常量 ========= */
-const ACCOUNT_KEY = "car_app_accounts";
-const CURRENT_ACCOUNT_KEY = "car_app_current_account";
-
-let currentAccountId = null;
-let pendingImportData = null;
-
-/* ========= 工具函数 ========= */
-function toast(msg) {
-    const t = document.getElementById("toast");
-    t.textContent = msg;
-    t.classList.add("show");
-    setTimeout(function() { t.classList.remove("show"); }, 2000);
-}
-
-function escapeHtml(text) {
-    const div = document.createElement("div");
-    div.textContent = text;
-    return div.innerHTML;
-}
-
-function getDataKey() {
-    return "car_app_data_" + currentAccountId;
-}
-function getBackupKey() {
-    return "car_app_backup_" + currentAccountId;
-}
-function getTrashKey() {
-    return "car_app_trash_" + currentAccountId;
-}
-
-function loadData() {
-    return JSON.parse(localStorage.getItem(getDataKey()) || "[]");
-}
-function saveData(data) {
-    localStorage.setItem(getDataKey(), JSON.stringify(data));
-}
-
-/* ========= 账号管理 ========= */
-function loadAccounts() {
-    return JSON.parse(localStorage.getItem(ACCOUNT_KEY) || "[]");
-}
-function saveAccounts(accounts) {
-    localStorage.setItem(ACCOUNT_KEY, JSON.stringify(accounts));
-}
-
-function initAccounts() {
-    let accounts = loadAccounts();
-    if (accounts.length === 0) {
-        accounts = [{ id: String(Date.now()), name: "默认账号", color: "#1a73e8" }];
-        saveAccounts(accounts);
+const App = (() => {
+    const STORAGE_KEY = 'car_data';
+    const TRASH_KEY = 'car_trash';
+    const BACKUP_KEY = 'car_backups';
+    const ACCOUNT_KEY = 'car_accounts';
+    const CURRENT_ACCOUNT_KEY = 'car_current_account';
+    let currentAccount = localStorage.getItem(CURRENT_ACCOUNT_KEY) || 'default';
+    let pendingImport = null;
+    let searchTimer = null;
+    const $ = id => document.getElementById(id);
+    function toast(msg) {
+        const t = $('toast');
+        t.textContent = msg;
+        t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 2000);
     }
-    currentAccountId = localStorage.getItem(CURRENT_ACCOUNT_KEY) || accounts[0].id;
-    if (!accounts.find(function(a) { return a.id === currentAccountId; })) {
-        currentAccountId = accounts[0].id;
-        localStorage.setItem(CURRENT_ACCOUNT_KEY, currentAccountId);
+    function getDataKey() {
+        return STORAGE_KEY + '_' + currentAccount;
     }
-    renderAccounts();
-    updateAccountBadge();
-}
-
-function switchAccount(id) {
-    currentAccountId = id;
-    localStorage.setItem(CURRENT_ACCOUNT_KEY, id);
-    updateAccountBadge();
-    renderAccounts();
-    renderList();
-    renderBackupList();
-    renderTrashList();
-    switchTab("tabData", document.querySelector(".nav-item"));
-    toast("账号已切换");
-}
-
-function openAccountForm(id) {
-    const accounts = loadAccounts();
-    const acc = accounts.find(function(a) { return a.id === id; });
-    document.getElementById("accountFormTitle").textContent = acc ? "编辑账号" : "新建账号";
-    document.getElementById("accountName").value = acc ? acc.name : "";
-    document.getElementById("accountColor").value = acc ? acc.color : "#1a73e8";
-    document.getElementById("accountId").value = id || "";
-    document.getElementById("accountModal").classList.add("show");
-}
-
-function saveAccount() {
-    const name = document.getElementById("accountName").value.trim();
-    if (!name) return toast("账号名称不能为空");
-    const color = document.getElementById("accountColor").value;
-    const id = document.getElementById("accountId").value;
-    const accounts = loadAccounts();
-    if (id) {
-        const acc = accounts.find(function(a) { return a.id === id; });
-        acc.name = name;
-        acc.color = color;
-    } else {
-        accounts.push({ id: String(Date.now()), name: name, color: color });
+    function getTrashKey() {
+        return TRASH_KEY + '_' + currentAccount;
     }
-    saveAccounts(accounts);
-    renderAccounts();
-    updateAccountBadge();
-    closeModal("accountModal");
-    toast("账号已保存");
-}
-
-function deleteAccount(id) {
-    const accounts = loadAccounts();
-    if (accounts.length <= 1) return toast("至少保留一个账号");
-    if (!confirm("删除账号会同时删除其所有数据，确认吗？")) return;
-    const newAccounts = accounts.filter(function(a) { return a.id !== id; });
-    saveAccounts(newAccounts);
-    // 清除该账号的所有数据
-    localStorage.removeItem("car_app_data_" + id);
-    localStorage.removeItem("car_app_backup_" + id);
-    localStorage.removeItem("car_app_trash_" + id);
-    if (currentAccountId === id) {
-        switchAccount(newAccounts[0].id);
-    } else {
-        renderAccounts();
+    function getBackupKey() {
+        return BACKUP_KEY + '_' + currentAccount;
     }
-    toast("账号已删除");
-}
-
-function renderAccounts() {
-    const accounts = loadAccounts();
-    const list = document.getElementById("accountList");
-    list.innerHTML = "";
-    accounts.forEach(function(acc) {
-        const div = document.createElement("div");
-        div.className = "account-item";
-        div.innerHTML =
-            '<div class="account-color" style="background:' + acc.color + '"></div>' +
-            '<div class="account-info">' +
-                "<strong>" + escapeHtml(acc.name) + "</strong>" +
-                (acc.id === currentAccountId ? '<span style="color:var(--primary)">（当前）</span>' : "") +
-            "</div>" +
-            '<div class="account-actions">' +
-                (acc.id !== currentAccountId ? '<button onclick="switchAccount(\'' + acc.id + '\')">切换</button>' : "") +
-                '<button onclick="openAccountForm(\'' + acc.id + '\')">编辑</button>' +
-                (accounts.length > 1 ? '<button class="danger" onclick="deleteAccount(\'' + acc.id + '\')">删除</button>' : "") +
-            "</div>";
-        list.appendChild(div);
-    });
-}
-
-function updateAccountBadge() {
-    const accounts = loadAccounts();
-    const acc = accounts.find(function(a) { return a.id === currentAccountId; });
-    const badge = document.getElementById("currentAccountBadge");
-    badge.textContent = acc ? acc.name : "";
-    badge.style.background = acc ? acc.color + "cc" : "";
-}
-
-/* ========= 手动备份 ========= */
-function manualBackup() {
-    const data = loadData();
-    const backups = JSON.parse(localStorage.getItem(getBackupKey()) || "[]");
-    backups.unshift({
-        id: Date.now(),
-        time: new Date().toLocaleString(),
-        reason: "手动备份",
-        count: data.length,
-        data: JSON.parse(JSON.stringify(data))
-    });
-    if (backups.length > 20) backups.length = 20;
-    localStorage.setItem(getBackupKey(), JSON.stringify(backups));
-    renderBackupList();
-    toast("手动备份完成（" + data.length + " 条）");
-}
-
-function renderBackupList() {
-    const backups = JSON.parse(localStorage.getItem(getBackupKey()) || "[]");
-    const list = document.getElementById("backupList");
-    list.innerHTML = "";
-    if (backups.length === 0) {
-        list.innerHTML = '<p style="text-align:center;color:#999;">暂无备份，点击上方按钮创建</p>';
-        return;
-    }
-    backups.forEach(function(b) {
-        const div = document.createElement("div");
-        div.className = "backup-item";
-        div.innerHTML =
-            "<strong>" + b.reason + "</strong><br>" +
-            "<span>" + b.time + " | " + b.count + " 条数据</span>" +
-            '<div class="backup-actions">' +
-                '<button class="safe" onclick="restoreBackup(' + b.id + ')">恢复</button>' +
-                '<button class="danger" onclick="deleteBackup(' + b.id + ')">删除</button>' +
-            "</div>";
-        list.appendChild(div);
-    });
-}
-
-function restoreBackup(id) {
-    const backups = JSON.parse(localStorage.getItem(getBackupKey()) || "[]");
-    const b = backups.find(function(x) { return x.id === id; });
-    if (!b) return;
-    if (!confirm("恢复备份将覆盖当前数据，确认吗？")) return;
-    saveData(b.data);
-    renderList();
-    closeModal("viewModal");
-    toast("已恢复到：" + b.time);
-}
-
-function deleteBackup(id) {
-    if (!confirm("删除该备份？")) return;
-    let backups = JSON.parse(localStorage.getItem(getBackupKey()) || "[]");
-    backups = backups.filter(function(x) { return x.id !== id; });
-    localStorage.setItem(getBackupKey(), JSON.stringify(backups));
-    renderBackupList();
-    toast("备份已删除");
-}
-
-/* ========= 回收站 ========= */
-function moveToTrash(row, index) {
-    const trash = JSON.parse(localStorage.getItem(getTrashKey()) || "[]");
-    trash.unshift({
-        model: row[0],
-        content: row[1],
-        remark: row[2],
-        deletedAt: Date.now(),
-        originalIndex: index
-    });
-    if (trash.length > 100) trash.length = 100;
-    localStorage.setItem(getTrashKey(), JSON.stringify(trash));
-}
-
-function cleanTrash() {
-    const now = Date.now();
-    let trash = JSON.parse(localStorage.getItem(getTrashKey()) || "[]");
-    const oldLen = trash.length;
-    trash = trash.filter(function(t) { return now - t.deletedAt < 7 * 24 * 60 * 60 * 1000; });
-    if (trash.length !== oldLen) {
-        localStorage.setItem(getTrashKey(), JSON.stringify(trash));
-    }
-}
-
-function renderTrashList() {
-    cleanTrash();
-    const trash = JSON.parse(localStorage.getItem(getTrashKey()) || "[]");
-    const list = document.getElementById("trashList");
-    list.innerHTML = "";
-    if (trash.length === 0) {
-        list.innerHTML = '<p style="text-align:center;color:#999;">回收站为空</p>';
-        return;
-    }
-    trash.forEach(function(t, i) {
-        const days = Math.ceil((7 * 24 * 60 * 60 * 1000 - (Date.now() - t.deletedAt)) / (24 * 60 * 60 * 1000));
-        const div = document.createElement("div");
-        div.className = "trash-item";
-        div.innerHTML =
-            "<strong>" + escapeHtml(t.model) + "</strong>" +
-            '<span><br>删除于：' + new Date(t.deletedAt).toLocaleString() + "（剩 " + days + " 天）</span>" +
-            '<div class="trash-actions">' +
-                '<button class="safe" onclick="restoreFromTrash(' + i + ')">恢复</button>' +
-                '<button class="danger" onclick="deleteFromTrash(' + i + ')">彻底删除</button>' +
-            "</div>";
-        list.appendChild(div);
-    });
-}
-
-function restoreFromTrash(index) {
-    const trash = JSON.parse(localStorage.getItem(getTrashKey()) || "[]");
-    const item = trash[index];
-    if (!item) return;
-    const data = loadData();
-    const row = [item.model, item.content, item.remark];
-    data.push(row);
-    saveData(data);
-    trash.splice(index, 1);
-    localStorage.setItem(getTrashKey(), JSON.stringify(trash));
-    renderList();
-    renderTrashList();
-    toast("已恢复：" + item.model);
-}
-
-function deleteFromTrash(index) {
-    if (!confirm("彻底删除，不可恢复！")) return;
-    const trash = JSON.parse(localStorage.getItem(getTrashKey()) || "[]");
-    trash.splice(index, 1);
-    localStorage.setItem(getTrashKey(), JSON.stringify(trash));
-    renderTrashList();
-    toast("已彻底删除");
-}
-
-/* ========= 数据渲染 ========= */
-function renderList() {
-    const data = loadData();
-    const list = document.getElementById("list");
-    const kw = document.getElementById("searchInput").value.toLowerCase().trim();
-    list.innerHTML = "";
-
-    if (data.length === 0) {
-        list.innerHTML = '<div style="text-align:center;padding:40px;color:#999;">📭 暂无数据<br><br>点击右下角 ＋ 按钮添加第一条车型信息</div>';
-    }
-
-    let visibleCount = 0;
-    data.forEach(function(row, i) {
-        // 搜索过滤
-        if (kw) {
-            const haystack = (row[0] + " " + row[1] + " " + row[2]).toLowerCase();
-            if (!haystack.includes(kw)) return;
+    // 增加异常捕获，防止本地存储损坏崩溃
+    function loadData() {
+        try{
+            return JSON.parse(localStorage.getItem(getDataKey()) || '[]');
+        }catch(e){
+            toast("⚠️ 当前账号数据损坏，已重置为空");
+            return [];
         }
-        visibleCount++;
-
-        const div = document.createElement("div");
-        div.className = "card";
-        div.innerHTML =
-            '<h3 onclick="openView(' + i + ')">' + escapeHtml(row[0]) + "</h3>" +
-            '<p onclick="openView(' + i + ')">' + escapeHtml(row[1].substring(0, 80)) + "</p>" +
-            '<p onclick="openView(' + i + ')">' + escapeHtml(row[2].substring(0, 80)) + "</p>" +
-            '<div class="card-actions">' +
-                '<span class="edit" onclick="event.stopPropagation();doEdit(' + i + ')">✏️ 编辑</span>' +
-                '<span class="delete" onclick="event.stopPropagation();doDelete(' + i + ')">🗑️ 删除</span>' +
-            "</div>";
-        list.appendChild(div);
-    });
-
-    // 更新统计
-    document.getElementById("statsText").innerHTML =
-        "共 <strong>" + data.length + "</strong> 条数据" +
-        (kw ? "（搜索匹配 " + visibleCount + " 条）" : "");
-    document.getElementById("storageInfo").textContent =
-        "本地存储已用 " + new Blob([JSON.stringify(data)]).size + " 字节";
-}
-
-/* ========= 详情查看 ========= */
-function openView(index) {
-    const data = loadData();
-    const row = data[index];
-    if (!row) return;
-    document.getElementById("viewText").innerHTML =
-        '<p><strong>🚗 车型：</strong>' + escapeHtml(row[0]) + "</p>" +
-        '<p><strong>📝 内容：</strong><br>' + escapeHtml(row[1]).replace(/\n/g, "<br>") + "</p>" +
-        '<p><strong>📌 备注：</strong><br>' + escapeHtml(row[2]).replace(/\n/g, "<br>") + "</p>";
-    document.getElementById("inputIndex").value = index;
-    document.getElementById("viewModal").classList.add("show");
-}
-
-function copyViewText() {
-    const text = document.getElementById("viewText").innerText;
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(text).then(function() {
-            toast("已复制到剪贴板");
-        }, function() {
-            fallbackCopy(text);
-        });
-    } else {
-        fallbackCopy(text);
     }
-}
-
-function fallbackCopy(text) {
-    const ta = document.createElement("textarea");
-    ta.value = text;
-    ta.style.position = "fixed";
-    ta.style.left = "-9999px";
-    document.body.appendChild(ta);
-    ta.select();
-    try { document.execCommand("copy"); toast("已复制"); }
-    catch(e) { toast("复制失败"); }
-    document.body.removeChild(ta);
-}
-
-function doEditFromView() {
-    const index = parseInt(document.getElementById("inputIndex").value);
-    closeModal("viewModal");
-    setTimeout(function() { doEdit(index); }, 100);
-}
-
-/* ========= 新增 / 编辑 ========= */
-function openForm() {
-    document.getElementById("formTitle").textContent = "新增车型";
-    document.getElementById("inputModel").value = "";
-    document.getElementById("inputContent").value = "";
-    document.getElementById("inputRemark").value = "";
-    document.getElementById("inputIndex").value = -1;
-    document.getElementById("formModal").classList.add("show");
-    setTimeout(function() { document.getElementById("inputModel").focus(); }, 200);
-}
-
-function doEdit(i) {
-    const data = loadData();
-    const row = data[i];
-    if (!row) return;
-    document.getElementById("formTitle").textContent = "编辑车型";
-    document.getElementById("inputModel").value = row[0];
-    document.getElementById("inputContent").value = row[1];
-    document.getElementById("inputRemark").value = row[2];
-    document.getElementById("inputIndex").value = i;
-    document.getElementById("formModal").classList.add("show");
-    setTimeout(function() { document.getElementById("inputModel").focus(); }, 200);
-}
-
-function saveRow() {
-    const model = document.getElementById("inputModel").value.trim();
-    if (!model) { toast("车型不能为空"); return; }
-
-    const content = document.getElementById("inputContent").value.trim();
-    const remark = document.getElementById("inputRemark").value.trim();
-    const data = loadData();
-    const i = parseInt(document.getElementById("inputIndex").value);
-
-    if (i >= 0) {
-        data[i] = [model, content, remark];
-    } else {
-        data.push([model, content, remark]);
+    function saveData(data) {
+        localStorage.setItem(getDataKey(), JSON.stringify(data));
+        renderList();
+        renderStats();
     }
-    saveData(data);
-    renderList();
-    closeModal("formModal");
-    toast(i >= 0 ? "修改成功" : "新增成功");
-}
+    function loadTrash() {
+        try{
+            return JSON.parse(localStorage.getItem(getTrashKey()) || '[]');
+        }catch(e){
+            toast("⚠️ 回收站数据损坏");
+            return [];
+        }
+    }
+    function saveTrash(data) {
+        localStorage.setItem(getTrashKey(), JSON.stringify(data));
+        renderTrashList();
+    }
+    function renderList() {
+        const data = loadData();
+        const kw = $('searchInput').value.toLowerCase();
+        const list = $('list');
+        let filtered = data;
+        if(kw){
+            filtered = data.filter(row=>row.join('').toLowerCase().includes(kw));
+        }
+        if (filtered.length === 0) {
+            if(kw){
+                list.innerHTML = '<div class="empty-state">🔍<br>没有找到匹配结果</div>';
+            }else{
+                list.innerHTML = '<div class="empty-state">🚗<br>暂无数据<br>点右下角 ＋ 添加</div>';
+            }
+            return;
+        }
+        list.innerHTML = filtered.map((row, i) => {
+            return `
+                <div class="card">
+                    <h3>${row[0]}</h3>
+                    <p>${row[1]}</p>
+                    <p>${row[2]}</p>
+                    <div class="card-actions">
+                        <button class="btn-edit" onclick="App.editRow(${data.indexOf(row)})">✏️ 编辑</button>
+                        <button class="btn-del" onclick="App.deleteRow(${data.indexOf(row)})">🗑️ 删除</button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+    function renderStats() {
+        $('statsText').textContent = `共 ${loadData().length} 条数据`;
+    }
+    function renderTrashList() {
+        const trash = loadTrash();
+        $('trashList').innerHTML = trash.length === 0
+            ? '<div class="empty-state">🗑️<br>回收站为空</div>'
+            : trash.map((t, i) => `
+                <div class="card">
+                    <h3>${t.row[0]}</h3>
+                    <p style="font-size:12px;color:#888;">删除于：${new Date(t.deletedAt).toLocaleString()}</p>
+                    <div class="card-actions">
+                        <button class="btn-edit" onclick="App.restoreFromTrash(${i})">↩️ 恢复</button>
+                        <button class="btn-del" onclick="App.deleteFromTrash(${i})">💀 彻底删除</button>
+                    </div>
+                </div>
+            `).join('');
+    }
 
-/* ========= 删除（已修复，100%可用） ========= */
-function doDelete(i) {
-    const data = loadData();
-    if (!data[i]) return;
-    const modelName = data[i][0];
-    if (!confirm("确定删除「" + modelName + "」？\n删除后可在回收站恢复（7天内）")) return;
-
-    moveToTrash(data[i], i);
-    data.splice(i, 1);
-    saveData(data);
-    renderList();
-    renderTrashList();
-    toast("已删除：「" + modelName + "」→ 回收站");
-}
-
-/* ========= Excel 导入（直接新增 + 预览） ========= */
-function handleExcelImport(e) {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = function(ev) {
-        try {
-            const data = new Uint8Array(ev.target.result);
-            const wb = XLSX.read(data, { type: "array", codepage: 65001 });
-            const ws = wb.Sheets[wb.SheetNames[0]];
-            const json = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
-
-            // 转换并过滤有效行
-            const newData = [];
-            json.forEach(function(r) {
-                if (!r || !r[0]) return; // 跳过空行
-                newData.push([
-                    String(r[0]).trim(),
-                    String(r[1] || "").trim(),
-                    String(r[2] || "").trim()
-                ]);
-            });
-
-            if (newData.length === 0) {
-                toast("Excel 中没有有效数据");
-                e.target.value = "";
+    function saveRow() {
+        const model = $('inputModel').value.trim();
+        if (!model) {
+            toast('⚠️ 车型不能为空');
+            $('inputModel').focus();
+            return;
+        }
+        const data = loadData();
+        const idx = parseInt($('inputIndex').value);
+        const isEdit = idx >= 0;
+        for (let i = 0; i < data.length; i++) {
+            if (isEdit && i === idx) continue;
+            if (data[i][0] === model) {
+                toast(`⚠️ 车型「${model}」已存在，请勿重复添加`);
+                $('inputModel').focus();
                 return;
             }
-
-            showImportPreview(newData);
-            e.target.value = "";
-        } catch(err) {
-            alert("解析失败：" + err.message + "\n\n请确认文件是有效的 .xlsx 格式");
-            e.target.value = "";
         }
-    };
-    reader.readAsArrayBuffer(file);
-}
-
-function showImportPreview(newData) {
-    const oldData = loadData();
-    const oldModels = {};
-    oldData.forEach(function(r) { oldModels[r[0]] = true; });
-
-    let reallyNew = 0;
-    let duplicate = 0;
-    const newList = [];
-
-    newData.forEach(function(r) {
-        if (oldModels[r[0]]) {
-            duplicate++;
+        const row = [
+            model,
+            $('inputContent').value.trim(),
+            $('inputRemark').value.trim()
+        ];
+        if (isEdit) {
+            data[idx] = row;
+            toast('✅ 编辑成功');
         } else {
-            reallyNew++;
-            newList.push(r);
+            data.push(row);
+            toast('✅ 新增成功');
         }
-    });
-
-    pendingImportData = newList;
-
-    let html = "";
-    if (reallyNew > 0) {
-        html += '<p class="add">🆕 将新增：' + reallyNew + ' 条</p>';
-        newList.slice(0, 20).forEach(function(r) {
-            html += '<p style="font-size:13px;color:#333;margin:2px 0;">• ' + escapeHtml(r[0]) + "</p>";
+        saveData(data);
+        closeModal('formModal');
+    }
+    function openForm() {
+        $('formTitle').textContent = '新增车型';
+        $('inputModel').value = '';
+        $('inputContent').value = '';
+        $('inputRemark').value = '';
+        $('inputIndex').value = -1;
+        $('formModal').classList.add('show');
+    }
+    function editRow(i) {
+        const row = loadData()[i];
+        $('formTitle').textContent = '编辑车型';
+        $('inputModel').value = row[0];
+        $('inputContent').value = row[1];
+        $('inputRemark').value = row[2];
+        $('inputIndex').value = i;
+        $('formModal').classList.add('show');
+    }
+    function deleteRow(i) {
+        if (!confirm('确定删除？将进入回收站')) return;
+        const data = loadData();
+        const item = data.splice(i, 1)[0];
+        const trash = loadTrash();
+        trash.unshift({ row: item, deletedAt: Date.now() });
+        saveTrash(trash);
+        saveData(data);
+        toast('已移入回收站');
+    }
+    function restoreFromTrash(i) {
+        const trash = loadTrash();
+        const item = trash.splice(i, 1)[0];
+        const data = loadData();
+        data.push(item.row);
+        saveTrash(trash);
+        saveData(data);
+        toast('已恢复');
+    }
+    function deleteFromTrash(i) {
+        if (!confirm('彻底删除？不可恢复！')) return;
+        const trash = loadTrash();
+        trash.splice(i, 1);
+        saveTrash(trash);
+        toast('已彻底删除');
+    }
+    function handleImport(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = ev => {
+            const wb = XLSX.read(new Uint8Array(ev.target.result), { type: 'array' });
+            const ws = wb.Sheets[wb.SheetNames[0]];
+            const json = XLSX.utils.sheet_to_json(ws, { header: 1 });
+            pendingImport = json.slice(1).filter(r => r[0]).map(r => [
+                String(r[0]).trim(),
+                String(r[1] || '').trim(),
+                String(r[2] || '').trim()
+            ]);
+            //预览前8条样例
+            let previewHtml = `将新增 <strong>${pendingImport.length}</strong> 条数据（旧数据不动，自动跳过重复车型）<br/><br/>`;
+            const showSample = pendingImport.slice(0,8);
+            showSample.forEach(item=>{
+                previewHtml += `<div class="preview-item">${item[0]}</div>`;
+            });
+            if(pendingImport.length>8) previewHtml += `<p>......还有${pendingImport.length-8}条</p>`;
+            $('importPreview').innerHTML = previewHtml;
+            $('importModal').classList.add('show');
+        };
+        reader.readAsArrayBuffer(file);
+        e.target.value = '';
+    }
+    //导入增加去重校验
+    function confirmImport() {
+        if (!pendingImport) return;
+        const data = loadData();
+        const existNames = data.map(item=>item[0]);
+        let skipCount = 0;
+        pendingImport.forEach(r => {
+            if(existNames.includes(r[0])){
+                skipCount++;
+                return;
+            }
+            data.push(r);
+            existNames.push(r[0]);
         });
-        if (newList.length > 20) html += "<p>...等共 " + newList.length + " 条</p>";
+        saveData(data);
+        pendingImport = null;
+        closeModal('importModal');
+        if(skipCount>0){
+            toast(`导入完成，跳过${skipCount}条重复车型`);
+        }else{
+            toast('导入成功');
+        }
     }
-    if (duplicate > 0) {
-        html += '<p style="color:#999;margin-top:8px;">⚠️ 跳过已存在：' + duplicate + ' 条（同名车型不重复导入）</p>';
+    function exportExcel() {
+        const ws = XLSX.utils.aoa_to_sheet([['车型','内容','备注'], ...loadData()]);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, '车型');
+        XLSX.writeFile(wb, '车型信息表.xlsx');
     }
-    html += '<p class="keep">🔒 旧数据 ' + oldData.length + ' 条全部保留</p>';
-
-    document.getElementById("importPreview").innerHTML = html;
-    document.getElementById("importModal").classList.add("show");
-}
-
-function confirmImport() {
-    if (!pendingImportData || pendingImportData.length === 0) {
-        closeModal("importModal");
-        return;
+    function exportTXT() {
+        const txt = loadData().map(r => r.join('\t')).join('\n');
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(new Blob(['\uFEFF'+txt], {type:'text/plain'}));
+        a.download = '车型信息表.txt';
+        a.click();
     }
-    const data = loadData();
-    const count = pendingImportData.length;
-    const newData = data.concat(pendingImportData);
-    saveData(newData);
+    function manualBackup() {
+        const data = loadData();
+        const backups = JSON.parse(localStorage.getItem(getBackupKey()) || '[]');
+        backups.unshift({ time: Date.now(), data });
+        localStorage.setItem(getBackupKey(), JSON.stringify(backups.slice(0, 20)));
+        toast('备份成功');
+        renderBackupList();
+    }
+    //备份恢复功能
+    function restoreBackup(index){
+        if(!confirm("⚠️确定恢复到此备份？当前所有数据将会被覆盖！")) return;
+        const backups = JSON.parse(localStorage.getItem(getBackupKey()) || '[]');
+        saveData(backups[index].data);
+        toast("✅备份恢复成功");
+    }
+    function renderBackupList() {
+        const list = $('backupList');
+        const backups = JSON.parse(localStorage.getItem(getBackupKey()) || '[]');
+        list.innerHTML = backups.length === 0
+            ? '<div class="empty-state">📦<br>暂无备份</div>'
+            : backups.map((b, i) => `
+                <div class="card">
+                    <p>${new Date(b.time).toLocaleString()}</p>
+                    <p>${b.data.length} 条数据</p>
+                    <div class="card-actions">
+                        <button class="btn-edit" onclick="App.restoreBackup(${i})">恢复</button>
+                    </div>
+                </div>
+            `).join('');
+    }
+    function createAccount() {
+        const name = $('newAccountName').value.trim();
+        if (!name) return;
+        const accounts = JSON.parse(localStorage.getItem(ACCOUNT_KEY) || '[]');
+        if (accounts.includes(name)) return toast('账号已存在');
+        accounts.push(name);
+        localStorage.setItem(ACCOUNT_KEY, JSON.stringify(accounts));
+        toast('账号创建成功');
+        $('newAccountName').value = '';
+        renderAccounts();
+    }
+    //切换账号
+    function switchAccount(name){
+        currentAccount = name;
+        localStorage.setItem(CURRENT_ACCOUNT_KEY,currentAccount);
+        renderList();
+        renderStats();
+        renderTrashList();
+        renderBackupList();
+        renderAccounts();
+        toast(`✅已切换账号：${name}`);
+    }
+    //删除账号
+    function delAccount(name){
+        if(!confirm(`确定删除账号【${name}】，所有数据永久删除？`)) return;
+        const accounts = JSON.parse(localStorage.getItem(ACCOUNT_KEY) || '[]');
+        const newAccounts = accounts.filter(a=>a!==name);
+        localStorage.setItem(ACCOUNT_KEY,JSON.stringify(newAccounts));
+        //如果删除的是当前账号切回默认
+        if(currentAccount===name){
+            currentAccount = 'default';
+            localStorage.setItem(CURRENT_ACCOUNT_KEY,currentAccount);
+        }
+        renderAccounts();
+        renderList();
+        renderStats();
+        renderTrashList();
+        renderBackupList();
+        toast(`账号【${name}】已删除`);
+    }
+    function renderAccounts() {
+        const list = $('accountList');
+        const accounts = JSON.parse(localStorage.getItem(ACCOUNT_KEY) || '[]');
+        list.innerHTML = accounts.map(acc => `
+            <div class="card">
+                <strong>${acc}</strong>
+                ${acc === currentAccount ? '<span style="color:#1a73e8;">（当前）</span>' : ''}
+                <div class="card-actions">
+                    ${acc !== currentAccount ? `<button class="btn-edit" onclick="App.switchAccount('${acc}')">切换</button>` :''}
+                    <button class="btn-del" onclick="App.delAccount('${acc}')">删除账号</button>
+                </div>
+            </div>
+        `).join('');
+        $('accountBadge').textContent = currentAccount;
+    }
+    function clearSearch() {
+        $('searchInput').value = '';
+        renderList();
+        toast('已清除搜索');
+    }
+    function clearAll() {
+        if (!confirm('清空当前账号所有数据？不可恢复！')) return;
+        localStorage.removeItem(getDataKey());
+        localStorage.removeItem(getTrashKey());
+        renderList();
+        renderTrashList();
+        toast('已清空数据');
+    }
+    function closeModal(id) {
+        $(id).classList.remove('show');
+    }
+    // 初始化
     renderList();
-    closeModal("importModal");
-    toast("✅ 成功新增 " + count + " 条数据（总计 " + newData.length + " 条）");
-    pendingImportData = null;
-}
-
-/* ========= 导出 ========= */
-function exportExcel() {
-    const data = loadData();
-    if (data.length === 0) return toast("暂无数据可导出");
-    const ws = XLSX.utils.aoa_to_sheet([["车型", "内容", "备注"]].concat(data));
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "车型信息");
-    XLSX.writeFile(wb, "车型信息表.xlsx");
-    toast("Excel 导出成功（" + data.length + " 条）");
-}
-
-function exportTXT() {
-    const data = loadData();
-    if (data.length === 0) return toast("暂无数据可导出");
-    let txt = "车型\t内容\t备注\n";
-    data.forEach(function(r) {
-        txt += r[0] + "\t" + r[1] + "\t" + r[2] + "\n";
-    });
-    // 加 BOM 防止中文乱码
-    const blob = new Blob(["\uFEFF" + txt], { type: "text/plain;charset=utf-8" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = "车型信息表.txt";
-    a.click();
-    URL.revokeObjectURL(a.href);
-    toast("TXT 导出成功（" + data.length + " 条）");
-}
-
-/* ========= 设置功能 ========= */
-function clearSearch() {
-    document.getElementById("searchInput").value = "";
-    renderList();
-    toast("已清除搜索");
-}
-
-function clearAll() {
-    const data = loadData();
-    if (data.length === 0) return toast("当前没有数据");
-    if (!confirm("⚠️ 清空当前账号所有数据！\n\n建议先去「📦 备份」页手动备份。\n\n确定要清空吗？")) return;
-    if (!confirm("再次确认：清空后数据不可恢复（回收站也清空）？")) return;
-    localStorage.removeItem(getDataKey());
-    localStorage.removeItem(getTrashKey());
-    renderList();
+    renderStats();
     renderTrashList();
-    toast("已清空所有数据");
-}
-
-/* ========= 弹窗控制 ========= */
-function closeModal(id) {
-    document.getElementById(id).classList.remove("show");
-}
-
-// 点击弹窗背景关闭
-document.querySelectorAll(".modal").forEach(function(m) {
-    m.addEventListener("click", function(e) {
-        if (e.target === this) closeModal(this.id);
+    renderAccounts();
+    //搜索防抖优化
+    $('searchInput').addEventListener('input',()=>{
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(renderList, 250);
     });
-});
 
-// Esc 关闭弹窗
-document.addEventListener("keydown", function(e) {
-    if (e.key === "Escape") {
-        document.querySelectorAll(".modal.show").forEach(function(m) {
-            closeModal(m.id);
-        });
-    }
-    // Ctrl+Enter 保存
-    if (e.ctrlKey && e.key === "Enter") {
-        const formModal = document.getElementById("formModal");
-        if (formModal.classList.contains("show")) {
-            saveRow();
-        }
-    }
-});
-
-/* ========= 标签切换 ========= */
-function switchTab(id, el) {
-    document.querySelectorAll(".tab-content").forEach(function(t) {
-        t.classList.remove("active");
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.onclick = () => {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.getElementById(item.dataset.tab).classList.add('active');
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            item.classList.add('active');
+            if (item.dataset.tab === 'tabBackup') renderBackupList();
+            if (item.dataset.tab === 'tabTrash') renderTrashList();
+            if (item.dataset.tab === 'tabAccount') renderAccounts();
+        };
     });
-    document.getElementById(id).classList.add("active");
-    document.querySelectorAll(".nav-item").forEach(function(n) {
-        n.classList.remove("active");
+    document.querySelectorAll('.modal').forEach(m => {
+        m.onclick = e => { if (e.target === m) closeModal(m.id); };
     });
-    el.classList.add("active");
-
-    // 切换时刷新对应内容
-    if (id === "tabBackup") renderBackupList();
-    if (id === "tabTrash") renderTrashList();
-    if (id === "tabAccount") renderAccounts();
-}
-
-/* ========= 搜索 ========= */
-document.getElementById("searchInput").addEventListener("input", renderList);
-
-/* ========= 初始化 ========= */
-initAccounts();
-renderList();
+    return {
+        openForm, editRow, saveRow, deleteRow,
+        restoreFromTrash, deleteFromTrash,
+        handleImport, confirmImport,
+        exportExcel, exportTXT,
+        manualBackup, restoreBackup,
+        createAccount,switchAccount,delAccount,
+        clearSearch, clearAll,
+        closeModal
+    };
+})();
 </script>
 </body>
 </html>
 
+   
