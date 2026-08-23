@@ -45,6 +45,7 @@ body {
 }
 .tab-content { display: none; padding: 12px; }
 .tab-content.active { display: block; }
+
 .card {
     background: white;
     border-radius: 12px;
@@ -78,6 +79,7 @@ body {
 }
 .btn-edit { background: #1a73e8; color: white; }
 .btn-del { background: #d93025; color: white; }
+
 .bottom-nav {
     position: fixed;
     bottom: 0;
@@ -99,6 +101,7 @@ body {
 }
 .nav-item.active { color: #1a73e8; font-weight: 600; }
 .nav-item span { font-size: 22px; display: block; }
+
 .fab {
     position: fixed;
     right: 20px;
@@ -114,6 +117,7 @@ body {
     z-index: 150;
     cursor: pointer;
 }
+
 .modal {
     display: none;
     position: fixed;
@@ -131,11 +135,6 @@ body {
     border-radius: 16px 16px 0 0;
     padding: 20px;
     overflow: auto;
-    transform: translateY(100%);
-    transition: transform 0.3s ease;
-}
-.modal.show .modal-content{
-    transform: translateY(0);
 }
 .modal-content h3 { margin-top: 0; }
 .modal-content input, .modal-content textarea {
@@ -159,6 +158,7 @@ body {
 .btn-cancel { background: #ccc !important; color: #333 !important; }
 .btn-safe { background: #1e8e3e !important; }
 .btn-danger { background: #d93025 !important; }
+
 .toast {
     position: fixed;
     bottom: 90px;
@@ -173,6 +173,7 @@ body {
     display: none;
 }
 .toast.show { display: block; }
+
 .panel {
     background: white;
     border-radius: 12px;
@@ -184,26 +185,23 @@ body {
     color: #999;
     padding: 40px 20px;
 }
-.preview-item{
-    background:#f5f5f5;
-    padding:8px;
-    border-radius:6px;
-    margin:4px 0;
-    font-size:14px;
-}
 </style>
 </head>
 <body>
+
 <div class="header">
     🚗 车型信息表
     <span class="account-badge" id="accountBadge">默认账号</span>
 </div>
+
 <div class="search-box">
     <input id="searchInput" placeholder="🔍 搜索车型 / 内容 / 备注...">
 </div>
+
 <div class="tab-content active" id="tabData">
     <div id="list"></div>
 </div>
+
 <div class="tab-content" id="tabStats">
     <div class="panel">
         <h4>📊 数据总览</h4>
@@ -219,6 +217,7 @@ body {
         <input type="file" accept=".xlsx,.xls" onchange="App.handleImport(event)">
     </div>
 </div>
+
 <div class="tab-content" id="tabBackup">
     <div class="panel">
         <h4>📦 手动备份</h4>
@@ -226,9 +225,11 @@ body {
     </div>
     <div id="backupList"></div>
 </div>
+
 <div class="tab-content" id="tabTrash">
     <div id="trashList"></div>
 </div>
+
 <div class="tab-content" id="tabAccount">
     <div class="panel">
         <h4>👤 账号管理</h4>
@@ -237,6 +238,7 @@ body {
     </div>
     <div id="accountList"></div>
 </div>
+
 <div class="tab-content" id="tabSettings">
     <div class="panel">
         <h4>⚙️ 设置</h4>
@@ -244,7 +246,9 @@ body {
         <button class="btn-danger" onclick="App.clearAll()" style="margin-top:8px;">🗑️ 清空数据</button>
     </div>
 </div>
+
 <button class="fab" onclick="App.openForm()">＋</button>
+
 <!-- 表单弹窗 -->
 <div class="modal" id="formModal">
     <div class="modal-content">
@@ -257,6 +261,7 @@ body {
         <button class="btn-cancel" onclick="App.closeModal('formModal')">取消</button>
     </div>
 </div>
+
 <!-- 导入预览 -->
 <div class="modal" id="importModal">
     <div class="modal-content">
@@ -266,44 +271,30 @@ body {
         <button class="btn-cancel" onclick="App.closeModal('importModal')">取消</button>
     </div>
 </div>
-<div class="toast" id="toast"></div>
 
-<!--底部导航【修复】补齐data-tab属性-->
-<div class="bottom-nav">
-    <div class="nav-item active" data-tab="tabData">
-        <span>📋</span>列表
-    </div>
-    <div class="nav-item" data-tab="tabStats">
-        <span>📊</span>统计
-    </div>
-    <div class="nav-item" data-tab="tabBackup">
-        <span>💾</span>备份
-    </div>
-    <div class="nav-item" data-tab="tabTrash">
-        <span>🗑️</span>回收站
-    </div>
-    <div class="nav-item" data-tab="tabAccount">
-        <span>👤</span>账号
-    </div>
-</div>
+<div class="toast" id="toast"></div>
 
 <script>
 const App = (() => {
+
     const STORAGE_KEY = 'car_data';
     const TRASH_KEY = 'car_trash';
     const BACKUP_KEY = 'car_backups';
     const ACCOUNT_KEY = 'car_accounts';
     const CURRENT_ACCOUNT_KEY = 'car_current_account';
+
     let currentAccount = localStorage.getItem(CURRENT_ACCOUNT_KEY) || 'default';
     let pendingImport = null;
-    let searchTimer = null;
+
     const $ = id => document.getElementById(id);
+
     function toast(msg) {
         const t = $('toast');
         t.textContent = msg;
         t.classList.add('show');
         setTimeout(() => t.classList.remove('show'), 2000);
     }
+
     function getDataKey() {
         return STORAGE_KEY + '_' + currentAccount;
     }
@@ -313,65 +304,54 @@ const App = (() => {
     function getBackupKey() {
         return BACKUP_KEY + '_' + currentAccount;
     }
-    // 增加异常捕获，防止本地存储损坏崩溃
+
     function loadData() {
-        try{
-            return JSON.parse(localStorage.getItem(getDataKey()) || '[]');
-        }catch(e){
-            toast("⚠️ 当前账号数据损坏，已重置为空");
-            return [];
-        }
+        return JSON.parse(localStorage.getItem(getDataKey()) || '[]');
     }
     function saveData(data) {
         localStorage.setItem(getDataKey(), JSON.stringify(data));
         renderList();
         renderStats();
     }
+
     function loadTrash() {
-        try{
-            return JSON.parse(localStorage.getItem(getTrashKey()) || '[]');
-        }catch(e){
-            toast("⚠️ 回收站数据损坏");
-            return [];
-        }
+        return JSON.parse(localStorage.getItem(getTrashKey()) || '[]');
     }
     function saveTrash(data) {
         localStorage.setItem(getTrashKey(), JSON.stringify(data));
         renderTrashList();
     }
+
     function renderList() {
         const data = loadData();
         const kw = $('searchInput').value.toLowerCase();
         const list = $('list');
-        let filtered = data;
-        if(kw){
-            filtered = data.filter(row=>row.join('').toLowerCase().includes(kw));
-        }
-        if (filtered.length === 0) {
-            if(kw){
-                list.innerHTML = '<div class="empty-state">🔍<br>没有找到匹配结果</div>';
-            }else{
-                list.innerHTML = '<div class="empty-state">🚗<br>暂无数据<br>点右下角 ＋ 添加</div>';
-            }
+
+        if (data.length === 0) {
+            list.innerHTML = '<div class="empty-state">🚗<br>暂无数据<br>点右下角 ＋ 添加</div>';
             return;
         }
-        list.innerHTML = filtered.map((row, i) => {
+
+        list.innerHTML = data.map((row, i) => {
+            if (kw && !row.join('').toLowerCase().includes(kw)) return '';
             return `
                 <div class="card">
                     <h3>${row[0]}</h3>
                     <p>${row[1]}</p>
                     <p>${row[2]}</p>
                     <div class="card-actions">
-                        <button class="btn-edit" onclick="App.editRow(${data.indexOf(row)})">✏️ 编辑</button>
-                        <button class="btn-del" onclick="App.deleteRow(${data.indexOf(row)})">🗑️ 删除</button>
+                        <button class="btn-edit" onclick="App.editRow(${i})">✏️ 编辑</button>
+                        <button class="btn-del" onclick="App.deleteRow(${i})">🗑️ 删除</button>
                     </div>
                 </div>
             `;
         }).join('');
     }
+
     function renderStats() {
         $('statsText').textContent = `共 ${loadData().length} 条数据`;
     }
+
     function renderTrashList() {
         const trash = loadTrash();
         $('trashList').innerHTML = trash.length === 0
@@ -388,6 +368,9 @@ const App = (() => {
             `).join('');
     }
 
+    /* ===============================
+       ✅ 核心修改：新增 / 编辑校验
+       =============================== */
     function saveRow() {
         const model = $('inputModel').value.trim();
         if (!model) {
@@ -395,22 +378,27 @@ const App = (() => {
             $('inputModel').focus();
             return;
         }
+
         const data = loadData();
         const idx = parseInt($('inputIndex').value);
         const isEdit = idx >= 0;
+
+        // ✅ 重复校验
         for (let i = 0; i < data.length; i++) {
-            if (isEdit && i === idx) continue;
+            if (isEdit && i === idx) continue; // 编辑时跳过自己
             if (data[i][0] === model) {
                 toast(`⚠️ 车型「${model}」已存在，请勿重复添加`);
                 $('inputModel').focus();
                 return;
             }
         }
+
         const row = [
             model,
             $('inputContent').value.trim(),
             $('inputRemark').value.trim()
         ];
+
         if (isEdit) {
             data[idx] = row;
             toast('✅ 编辑成功');
@@ -418,9 +406,11 @@ const App = (() => {
             data.push(row);
             toast('✅ 新增成功');
         }
+
         saveData(data);
         closeModal('formModal');
     }
+
     function openForm() {
         $('formTitle').textContent = '新增车型';
         $('inputModel').value = '';
@@ -429,6 +419,7 @@ const App = (() => {
         $('inputIndex').value = -1;
         $('formModal').classList.add('show');
     }
+
     function editRow(i) {
         const row = loadData()[i];
         $('formTitle').textContent = '编辑车型';
@@ -438,6 +429,7 @@ const App = (() => {
         $('inputIndex').value = i;
         $('formModal').classList.add('show');
     }
+
     function deleteRow(i) {
         if (!confirm('确定删除？将进入回收站')) return;
         const data = loadData();
@@ -448,6 +440,7 @@ const App = (() => {
         saveData(data);
         toast('已移入回收站');
     }
+
     function restoreFromTrash(i) {
         const trash = loadTrash();
         const item = trash.splice(i, 1)[0];
@@ -457,6 +450,7 @@ const App = (() => {
         saveData(data);
         toast('已恢复');
     }
+
     function deleteFromTrash(i) {
         if (!confirm('彻底删除？不可恢复！')) return;
         const trash = loadTrash();
@@ -464,6 +458,7 @@ const App = (() => {
         saveTrash(trash);
         toast('已彻底删除');
     }
+
     function handleImport(e) {
         const file = e.target.files[0];
         if (!file) return;
@@ -477,48 +472,30 @@ const App = (() => {
                 String(r[1] || '').trim(),
                 String(r[2] || '').trim()
             ]);
-            //预览前8条样例
-            let previewHtml = `将新增 <strong>${pendingImport.length}</strong> 条数据（旧数据不动，自动跳过重复车型）<br/><br/>`;
-            const showSample = pendingImport.slice(0,8);
-            showSample.forEach(item=>{
-                previewHtml += `<div class="preview-item">${item[0]}</div>`;
-            });
-            if(pendingImport.length>8) previewHtml += `<p>......还有${pendingImport.length-8}条</p>`;
-            $('importPreview').innerHTML = previewHtml;
+            $('importPreview').innerHTML = `将新增 <strong>${pendingImport.length}</strong> 条数据（旧数据不动）`;
             $('importModal').classList.add('show');
+            e.target.value = '';
         };
         reader.readAsArrayBuffer(file);
-        e.target.value = '';
     }
-    //导入增加去重校验
+
     function confirmImport() {
         if (!pendingImport) return;
         const data = loadData();
-        const existNames = data.map(item=>item[0]);
-        let skipCount = 0;
-        pendingImport.forEach(r => {
-            if(existNames.includes(r[0])){
-                skipCount++;
-                return;
-            }
-            data.push(r);
-            existNames.push(r[0]);
-        });
+        pendingImport.forEach(r => data.push(r));
         saveData(data);
         pendingImport = null;
         closeModal('importModal');
-        if(skipCount>0){
-            toast(`导入完成，跳过${skipCount}条重复车型`);
-        }else{
-            toast('导入成功');
-        }
+        toast('导入成功');
     }
+
     function exportExcel() {
         const ws = XLSX.utils.aoa_to_sheet([['车型','内容','备注'], ...loadData()]);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, '车型');
         XLSX.writeFile(wb, '车型信息表.xlsx');
     }
+
     function exportTXT() {
         const txt = loadData().map(r => r.join('\t')).join('\n');
         const a = document.createElement('a');
@@ -526,6 +503,7 @@ const App = (() => {
         a.download = '车型信息表.txt';
         a.click();
     }
+
     function manualBackup() {
         const data = loadData();
         const backups = JSON.parse(localStorage.getItem(getBackupKey()) || '[]');
@@ -534,13 +512,7 @@ const App = (() => {
         toast('备份成功');
         renderBackupList();
     }
-    //备份恢复功能
-    function restoreBackup(index){
-        if(!confirm("⚠️确定恢复到此备份？当前所有数据将会被覆盖！")) return;
-        const backups = JSON.parse(localStorage.getItem(getBackupKey()) || '[]');
-        saveData(backups[index].data);
-        toast("✅备份恢复成功");
-    }
+
     function renderBackupList() {
         const list = $('backupList');
         const backups = JSON.parse(localStorage.getItem(getBackupKey()) || '[]');
@@ -550,12 +522,10 @@ const App = (() => {
                 <div class="card">
                     <p>${new Date(b.time).toLocaleString()}</p>
                     <p>${b.data.length} 条数据</p>
-                    <div class="card-actions">
-                        <button class="btn-edit" onclick="App.restoreBackup(${i})">恢复</button>
-                    </div>
                 </div>
             `).join('');
     }
+
     function createAccount() {
         const name = $('newAccountName').value.trim();
         if (!name) return;
@@ -567,35 +537,7 @@ const App = (() => {
         $('newAccountName').value = '';
         renderAccounts();
     }
-    //切换账号
-    function switchAccount(name){
-        currentAccount = name;
-        localStorage.setItem(CURRENT_ACCOUNT_KEY,currentAccount);
-        renderList();
-        renderStats();
-        renderTrashList();
-        renderBackupList();
-        renderAccounts();
-        toast(`✅已切换账号：${name}`);
-    }
-    //删除账号
-    function delAccount(name){
-        if(!confirm(`确定删除账号【${name}】，所有数据永久删除？`)) return;
-        const accounts = JSON.parse(localStorage.getItem(ACCOUNT_KEY) || '[]');
-        const newAccounts = accounts.filter(a=>a!==name);
-        localStorage.setItem(ACCOUNT_KEY,JSON.stringify(newAccounts));
-        //如果删除的是当前账号切回默认
-        if(currentAccount===name){
-            currentAccount = 'default';
-            localStorage.setItem(CURRENT_ACCOUNT_KEY,currentAccount);
-        }
-        renderAccounts();
-        renderList();
-        renderStats();
-        renderTrashList();
-        renderBackupList();
-        toast(`账号【${name}】已删除`);
-    }
+
     function renderAccounts() {
         const list = $('accountList');
         const accounts = JSON.parse(localStorage.getItem(ACCOUNT_KEY) || '[]');
@@ -603,19 +545,17 @@ const App = (() => {
             <div class="card">
                 <strong>${acc}</strong>
                 ${acc === currentAccount ? '<span style="color:#1a73e8;">（当前）</span>' : ''}
-                <div class="card-actions">
-                    ${acc !== currentAccount ? `<button class="btn-edit" onclick="App.switchAccount('${acc}')">切换</button>` :''}
-                    <button class="btn-del" onclick="App.delAccount('${acc}')">删除账号</button>
-                </div>
             </div>
         `).join('');
         $('accountBadge').textContent = currentAccount;
     }
+
     function clearSearch() {
         $('searchInput').value = '';
         renderList();
         toast('已清除搜索');
     }
+
     function clearAll() {
         if (!confirm('清空当前账号所有数据？不可恢复！')) return;
         localStorage.removeItem(getDataKey());
@@ -624,19 +564,18 @@ const App = (() => {
         renderTrashList();
         toast('已清空数据');
     }
+
     function closeModal(id) {
         $(id).classList.remove('show');
     }
+
     // 初始化
     renderList();
     renderStats();
     renderTrashList();
     renderAccounts();
-    //搜索防抖优化
-    $('searchInput').addEventListener('input',()=>{
-        clearTimeout(searchTimer);
-        searchTimer = setTimeout(renderList, 250);
-    });
+
+    $('searchInput').addEventListener('input', renderList);
 
     document.querySelectorAll('.nav-item').forEach(item => {
         item.onclick = () => {
@@ -649,22 +588,23 @@ const App = (() => {
             if (item.dataset.tab === 'tabAccount') renderAccounts();
         };
     });
+
     document.querySelectorAll('.modal').forEach(m => {
         m.onclick = e => { if (e.target === m) closeModal(m.id); };
     });
+
     return {
         openForm, editRow, saveRow, deleteRow,
         restoreFromTrash, deleteFromTrash,
         handleImport, confirmImport,
         exportExcel, exportTXT,
-        manualBackup, restoreBackup,
-        createAccount,switchAccount,delAccount,
+        manualBackup, createAccount,
         clearSearch, clearAll,
         closeModal
     };
+
 })();
 </script>
 </body>
 </html>
 
-   
