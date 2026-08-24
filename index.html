@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+  <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
@@ -6,27 +6,31 @@
   <title>车型信息表</title>
   <script src="https://cdn.bootcdn.net/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <style>
-    /* ===== 全局重置 & 基础 ===== */
+    /* ===== 全局重置 ===== */
     * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
+      -webkit-tap-highlight-color: transparent;
     }
 
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       background: #f5f7fa;
-      padding-bottom: 80px;
+      padding-bottom: 75px;
       color: #1e293b;
       -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      touch-action: manipulation;
+      user-select: none;
     }
 
     /* ===== 顶部标题 ===== */
     .header {
       background: #0f2b4b;
       color: white;
-      padding: 18px 16px;
-      font-size: 20px;
+      padding: 14px 16px;
+      font-size: 18px;
       font-weight: 600;
       text-align: center;
       letter-spacing: 0.5px;
@@ -36,15 +40,42 @@
       z-index: 10;
     }
 
+    /* ===== 统计栏 ===== */
+    .stats-bar {
+      background: white;
+      padding: 8px 12px;
+      display: flex;
+      justify-content: space-around;
+      border-bottom: 1px solid #e9edf2;
+      font-size: 12px;
+      color: #475569;
+      position: sticky;
+      top: 52px;
+      z-index: 9;
+      backdrop-filter: blur(4px);
+      background: rgba(255, 255, 255, 0.92);
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+    .stats-bar span {
+      font-weight: 500;
+      padding: 2px 6px;
+    }
+    .stats-bar .num {
+      color: #1a5fb4;
+      font-weight: 700;
+      font-size: 14px;
+    }
+
     /* ===== 搜索栏 ===== */
     .search {
       background: white;
-      padding: 12px 16px;
+      padding: 10px 12px;
       display: flex;
-      gap: 10px;
+      gap: 8px;
       border-bottom: 1px solid #e9edf2;
       position: sticky;
-      top: 64px;
+      top: 80px;
       z-index: 9;
       backdrop-filter: blur(4px);
       background: rgba(255, 255, 255, 0.92);
@@ -54,37 +85,41 @@
       flex: 1;
       padding: 12px 16px;
       border: 1px solid #d0d7e2;
-      border-radius: 30px;
+      border-radius: 25px;
       font-size: 15px;
       background: #f8fafc;
       transition: 0.2s;
       outline: none;
       min-width: 0;
+      -webkit-appearance: none;
+      appearance: none;
     }
 
     .search input:focus {
       border-color: #1a5fb4;
       background: white;
-      box-shadow: 0 0 0 3px rgba(26, 95, 180, 0.15);
+      box-shadow: 0 0 0 3px rgba(26, 95, 180, 0.12);
     }
 
     .search button {
       background: #1a5fb4;
       border: none;
-      border-radius: 30px;
-      padding: 0 20px;
-      font-weight: 500;
+      border-radius: 25px;
+      padding: 12px 18px;
+      font-weight: 600;
       color: white;
       font-size: 15px;
       cursor: pointer;
       transition: 0.15s;
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
       white-space: nowrap;
+      touch-action: manipulation;
+      min-height: 48px;
     }
 
     .search button:active {
       background: #0f4a8a;
-      transform: scale(0.96);
+      transform: scale(0.95);
     }
 
     /* ===== 列表容器 ===== */
@@ -98,24 +133,19 @@
     /* ===== 数据卡片 ===== */
     .card {
       background: white;
-      border-radius: 18px;
-      padding: 16px 18px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+      border-radius: 16px;
+      padding: 16px 16px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
       border: 1px solid #eef2f6;
       border-left: 5px solid #1a5fb4;
       transition: 0.1s;
-      animation: fadeIn 0.2s ease;
+      animation: fadeIn 0.25s ease;
+      touch-action: manipulation;
     }
 
     @keyframes fadeIn {
-      from {
-        opacity: 0;
-        transform: translateY(8px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
     }
 
     .card.trash-card {
@@ -128,11 +158,12 @@
     }
 
     .card h3 {
-      font-size: 18px;
+      font-size: 17px;
       font-weight: 600;
       color: #0f2b4b;
       margin-bottom: 6px;
       word-break: break-word;
+      line-height: 1.4;
     }
 
     .card p {
@@ -149,6 +180,16 @@
       color: #64748b;
       font-size: 13px;
       background: #f1f5f9;
+      padding: 4px 12px;
+      border-radius: 20px;
+      display: inline-block;
+      margin-top: 6px;
+    }
+
+    .trash-info {
+      font-size: 12px;
+      color: #b91c1c;
+      background: #fef2f2;
       padding: 4px 10px;
       border-radius: 20px;
       display: inline-block;
@@ -164,51 +205,44 @@
     .card-actions button {
       flex: 1;
       border: none;
-      border-radius: 40px;
+      border-radius: 30px;
       padding: 12px 0;
-      font-weight: 500;
+      font-weight: 600;
       font-size: 14px;
       cursor: pointer;
       transition: 0.12s;
+      touch-action: manipulation;
+      min-height: 48px;
     }
 
     .card-actions button:active {
-      transform: scale(0.96);
+      transform: scale(0.94);
     }
 
-    .edit {
-      background: #e8edf5;
-      color: #1a5fb4;
-    }
-    .edit:active {
-      background: #d0dbea;
-    }
+    .edit { background: #e8edf5; color: #1a5fb4; }
+    .edit:active { background: #d0dbea; }
 
-    .del {
-      background: #fee9e7;
-      color: #b91c1c;
-    }
-    .del:active {
-      background: #fcd8d5;
-    }
+    .del { background: #fee9e7; color: #b91c1c; }
+    .del:active { background: #fcd8d5; }
 
     /* ===== 空状态 ===== */
     .empty-state {
-      padding: 40px 20px;
+      padding: 50px 20px;
       text-align: center;
       color: #94a3b8;
-      font-size: 16px;
+      font-size: 15px;
       background: white;
-      border-radius: 30px;
+      border-radius: 20px;
       margin: 16px 12px;
       border: 1px dashed #d0d7e2;
+      line-height: 1.8;
     }
 
     /* ===== 悬浮添加按钮 ===== */
     .fab {
       position: fixed;
-      right: 22px;
-      bottom: 100px;
+      right: 18px;
+      bottom: 85px;
       width: 60px;
       height: 60px;
       border-radius: 50%;
@@ -216,17 +250,18 @@
       color: white;
       font-size: 34px;
       border: none;
-      box-shadow: 0 6px 18px rgba(26, 95, 180, 0.35);
+      box-shadow: 0 4px 16px rgba(26, 95, 180, 0.4);
       cursor: pointer;
       transition: 0.15s;
       display: flex;
       align-items: center;
       justify-content: center;
       z-index: 20;
+      touch-action: manipulation;
     }
 
     .fab:active {
-      transform: scale(0.92);
+      transform: scale(0.88);
       background: #0f4a8a;
     }
 
@@ -236,31 +271,42 @@
       bottom: 0;
       left: 0;
       right: 0;
-      height: 70px;
-      background: rgba(255, 255, 255, 0.92);
-      backdrop-filter: blur(6px);
+      height: 64px;
+      background: rgba(255, 255, 255, 0.96);
+      backdrop-filter: blur(12px);
       border-top: 1px solid #e2e8f0;
       display: flex;
       justify-content: space-around;
       align-items: center;
       z-index: 30;
-      padding-bottom: env(safe-area-inset-bottom, 0);
+      padding: 2px 2px 4px;
+      padding-bottom: env(safe-area-inset-bottom, 4px);
+      box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.04);
     }
 
     .nav-item {
       text-align: center;
-      font-size: 13px;
+      font-size: 10px;
       color: #64748b;
       cursor: pointer;
-      padding: 6px 10px;
-      border-radius: 30px;
+      padding: 4px 3px;
+      border-radius: 16px;
       transition: 0.15s;
       font-weight: 500;
       background: transparent;
       border: none;
       flex: 1;
-      max-width: 80px;
+      max-width: 60px;
+      min-width: 40px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1px;
+      touch-action: manipulation;
     }
+
+    .nav-item .icon { font-size: 22px; line-height: 1.2; }
+    .nav-item .label { font-size: 9px; line-height: 1.1; letter-spacing: 0.3px; }
 
     .nav-item.active {
       color: #1a5fb4;
@@ -268,9 +314,7 @@
       font-weight: 600;
     }
 
-    .nav-item:active {
-      transform: scale(0.94);
-    }
+    .nav-item:active { transform: scale(0.90); }
 
     /* ===== 弹窗 ===== */
     .modal {
@@ -281,38 +325,30 @@
       justify-content: center;
       align-items: flex-end;
       z-index: 100;
-      backdrop-filter: blur(2px);
+      backdrop-filter: blur(4px);
     }
 
-    .modal.show {
-      display: flex;
-    }
+    .modal.show { display: flex; }
 
     .modal-content {
       background: #ffffff;
       width: 100%;
       max-width: 500px;
       margin: 0 auto;
-      padding: 24px 22px 34px;
-      border-radius: 28px 28px 0 0;
-      box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.08);
-      animation: slideUp 0.25s ease-out;
+      padding: 22px 18px 28px;
+      border-radius: 24px 24px 0 0;
+      box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.1);
+      animation: slideUp 0.3s ease-out;
     }
 
     @keyframes slideUp {
-      from {
-        transform: translateY(30px);
-        opacity: 0.6;
-      }
-      to {
-        transform: translateY(0);
-        opacity: 1;
-      }
+      from { transform: translateY(40px); opacity: 0.5; }
+      to { transform: translateY(0); opacity: 1; }
     }
 
     .modal-content h3 {
-      font-size: 20px;
-      margin-bottom: 18px;
+      font-size: 19px;
+      margin-bottom: 16px;
       color: #0f2b4b;
       font-weight: 600;
     }
@@ -321,14 +357,16 @@
     .modal-content textarea {
       width: 100%;
       padding: 14px 16px;
-      margin-bottom: 14px;
-      font-size: 15px;
+      margin-bottom: 12px;
+      font-size: 16px;
       border: 1px solid #d0d7e2;
-      border-radius: 18px;
+      border-radius: 16px;
       background: #fafcff;
       transition: 0.15s;
       font-family: inherit;
       resize: vertical;
+      -webkit-appearance: none;
+      appearance: none;
     }
 
     .modal-content input:focus,
@@ -336,193 +374,127 @@
       border-color: #1a5fb4;
       outline: none;
       background: white;
-      box-shadow: 0 0 0 3px rgba(26, 95, 180, 0.12);
+      box-shadow: 0 0 0 3px rgba(26, 95, 180, 0.1);
     }
 
-    .modal-content textarea {
-      min-height: 70px;
-    }
+    .modal-content textarea { min-height: 60px; }
 
     .modal-content button {
       width: 100%;
       padding: 16px;
       font-size: 16px;
-      border-radius: 40px;
+      border-radius: 30px;
       border: none;
       background: #1a5fb4;
       color: white;
       font-weight: 600;
       cursor: pointer;
       transition: 0.12s;
-      margin-top: 6px;
+      margin-top: 4px;
+      touch-action: manipulation;
+      min-height: 52px;
     }
 
     .modal-content button:active {
       opacity: 0.8;
-      transform: scale(0.98);
+      transform: scale(0.97);
     }
 
     .modal-content .cancel {
       background: #e9edf2;
       color: #1e293b;
-      margin-top: 8px;
+      margin-top: 6px;
     }
 
-    .modal-content .cancel:active {
-      background: #d0d7e2;
-    }
-
-    /* ===== Toast 提示 ===== */
+    /* ===== Toast ===== */
     .toast {
       position: fixed;
-      bottom: 100px;
+      bottom: 80px;
       left: 50%;
       transform: translateX(-50%);
       background: #0f172a;
       color: white;
-      padding: 12px 26px;
-      border-radius: 60px;
-      font-size: 15px;
+      padding: 12px 24px;
+      border-radius: 30px;
+      font-size: 14px;
       font-weight: 500;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25);
       display: none;
       z-index: 200;
       white-space: nowrap;
       pointer-events: none;
-      max-width: 90%;
+      max-width: 92%;
       overflow: hidden;
       text-overflow: ellipsis;
     }
 
-    .toast.show {
-      display: block;
-    }
+    .toast.show { display: block; }
 
     /* ===== 导入预览 ===== */
     #importPreview {
       background: #f8fafc;
-      padding: 18px;
-      border-radius: 18px;
+      padding: 16px;
+      border-radius: 16px;
       text-align: center;
-      margin: 12px 0 18px;
-      font-size: 16px;
+      margin: 10px 0 16px;
+      font-size: 15px;
       border: 1px solid #e2e8f0;
+      max-height: 300px;
+      overflow-y: auto;
     }
 
-    #importPreview strong {
-      color: #1a5fb4;
+    #importPreview strong { color: #1a5fb4; }
+
+    /* ===== 隐藏文件输入 ===== */
+    #importFileInput { display: none; }
+
+    /* ===== 小屏优化 ===== */
+    @media (max-width: 420px) {
+      .header { font-size: 16px; padding: 12px; }
+      .stats-bar { font-size: 11px; padding: 6px 8px; top: 48px; }
+      .search { top: 74px; padding: 8px 10px; }
+      .fab { width: 54px; height: 54px; font-size: 30px; right: 14px; bottom: 78px; }
+      .card { padding: 14px 14px; border-radius: 14px; }
+      .bottom-nav { height: 58px; }
+      .nav-item { max-width: 50px; }
+      .nav-item .icon { font-size: 20px; }
+      .nav-item .label { font-size: 8px; }
     }
 
-    /* ===== 账号卡片特殊样式 ===== */
-    .card.account-card {
-      border-left-color: #64748b;
-    }
-
-    .account-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
-
-    .account-name {
-      font-size: 17px;
-      font-weight: 600;
-    }
-
-    .account-badge {
-      background: #e8edf5;
-      color: #1a5fb4;
-      padding: 2px 14px;
-      border-radius: 30px;
-      font-size: 13px;
-      font-weight: 500;
-    }
-
-    /* ===== 响应式优化 ===== */
-    @media (max-width: 480px) {
-      .header {
-        font-size: 18px;
-        padding: 14px;
-      }
-
-      .fab {
-        width: 56px;
-        height: 56px;
-        font-size: 30px;
-        bottom: 90px;
-        right: 16px;
-      }
-
-      .search {
-        flex-wrap: wrap;
-        padding: 10px 12px;
-        gap: 8px;
-      }
-
-      .search input {
-        padding: 10px 14px;
-        font-size: 14px;
-      }
-
-      .search button {
-        flex: 1;
-        padding: 10px 12px;
-        font-size: 14px;
-      }
-
-      .card {
-        padding: 14px 14px;
-        border-radius: 14px;
-      }
-
-      .card-actions button {
-        padding: 10px 0;
-        font-size: 13px;
-      }
-
-      .modal-content {
-        padding: 20px 16px 28px;
-        border-radius: 20px 20px 0 0;
-      }
-
+    @supports (padding-bottom: env(safe-area-inset-bottom)) {
       .bottom-nav {
-        height: 62px;
+        padding-bottom: env(safe-area-inset-bottom, 4px);
+        height: calc(64px + env(safe-area-inset-bottom, 0px));
       }
-
-      .nav-item {
-        font-size: 12px;
-        padding: 4px 6px;
+      .fab {
+        bottom: calc(85px + env(safe-area-inset-bottom, 0px));
       }
-    }
-
-    @media (max-width: 380px) {
-      .nav-item {
-        font-size: 11px;
-        padding: 4px 4px;
+      .toast {
+        bottom: calc(80px + env(safe-area-inset-bottom, 0px));
       }
     }
   </style>
 </head>
 <body>
 
-  <!-- ===== 顶部标题 ===== -->
   <div class="header">🚗 车型信息表</div>
 
-  <!-- ===== 搜索栏 ===== -->
+  <div class="stats-bar" id="statsBar">
+    <span>📊 总计: <span class="num" id="totalCount">0</span></span>
+    <span>🗑️ 回收站: <span class="num" id="trashCount">0</span></span>
+    <span>👤 <span id="currentAccountDisplay">default</span></span>
+  </div>
+
   <div class="search">
-    <input id="searchInput" placeholder="搜索车型名称" aria-label="搜索车型">
+    <input id="searchInput" placeholder="搜索车型/内容/备注..." aria-label="搜索车型" inputmode="search">
     <button onclick="handleSearch()">🔍 搜索</button>
   </div>
 
-  <!-- ===== 列表容器 ===== -->
   <div id="list"></div>
 
-  <!-- ===== 悬浮添加按钮 ===== -->
   <button class="fab" onclick="openForm()" aria-label="添加新车">＋</button>
 
-  <!-- ===== 新增/编辑弹窗 ===== -->
+  <!-- 新增/编辑弹窗 -->
   <div class="modal" id="formModal">
     <div class="modal-content">
       <h3 id="formTitle">新增车型</h3>
@@ -534,7 +506,7 @@
     </div>
   </div>
 
-  <!-- ===== 导入预览弹窗 ===== -->
+  <!-- 导入预览弹窗 -->
   <div class="modal" id="importModal">
     <div class="modal-content">
       <h3>📥 导入预览</h3>
@@ -544,28 +516,43 @@
     </div>
   </div>
 
-  <!-- ===== 底部导航 ===== -->
+  <!-- 底部导航 -->
   <div class="bottom-nav">
-    <button class="nav-item active" data-tab="data" onclick="switchTab('data', this)">🏠 数据</button>
-    <button class="nav-item" data-tab="trash" onclick="switchTab('trash', this)">🗑️ 回收站</button>
-    <button class="nav-item" data-tab="import" onclick="triggerImport()">📥 导入</button>
-    <button class="nav-item" data-tab="template" onclick="downloadTemplate()">📄 模板</button>
-    <button class="nav-item" data-tab="export" onclick="exportExcel()">📤 导出</button>
-    <button class="nav-item" data-tab="account" onclick="switchTab('account', this)">👤 账号</button>
+    <button class="nav-item active" data-tab="data" onclick="switchTab('data', this)">
+      <span class="icon">🏠</span><span class="label">数据</span>
+    </button>
+    <button class="nav-item" data-tab="stats" onclick="switchTab('stats', this)">
+      <span class="icon">📊</span><span class="label">统计</span>
+    </button>
+    <button class="nav-item" data-tab="backup" onclick="switchTab('backup', this)">
+      <span class="icon">💾</span><span class="label">备份</span>
+    </button>
+    <button class="nav-item" data-tab="import" onclick="triggerImport()">
+      <span class="icon">📥</span><span class="label">导入</span>
+    </button>
+    <!-- ✅ 新增：模板按钮 -->
+    <button class="nav-item" data-tab="template" onclick="downloadTemplate()">
+      <span class="icon">📄</span><span class="label">模板</span>
+    </button>
+    <button class="nav-item" data-tab="export" onclick="exportExcel()">
+      <span class="icon">📤</span><span class="label">导出</span>
+    </button>
+    <button class="nav-item" data-tab="trash" onclick="switchTab('trash', this)">
+      <span class="icon">🗑️</span><span class="label">回收站</span>
+    </button>
+    <button class="nav-item" data-tab="account" onclick="switchTab('account', this)">
+      <span class="icon">👤</span><span class="label">账号</span>
+    </button>
   </div>
 
-  <!-- ===== Toast 提示 ===== -->
   <div class="toast" id="toastMessage"></div>
-
-  <!-- ===== 隐藏的文件输入 ===== -->
-  <input type="file" id="importFileInput" accept=".xlsx,.xls" style="display:none">
+  <input type="file" id="importFileInput" accept=".xlsx,.xls">
 
   <script>
     // ================================================================
-    //  1. 工具函数
+    // 工具函数
     // ================================================================
-
-    const $ = (id) => document.getElementById(id);
+    const $ = id => document.getElementById(id);
 
     function showToast(msg) {
       const el = $('toastMessage');
@@ -576,17 +563,13 @@
     }
 
     function safeJSONParse(str, fallback = []) {
-      try {
-        const parsed = JSON.parse(str);
-        return Array.isArray(parsed) ? parsed : fallback;
-      } catch {
-        return fallback;
-      }
+      try { return Array.isArray(JSON.parse(str)) ? JSON.parse(str) : fallback; }
+      catch { return fallback; }
     }
 
     function debounce(fn, delay = 300) {
       let timer = null;
-      return function(...args) {
+      return (...args) => {
         clearTimeout(timer);
         timer = setTimeout(() => fn.apply(this, args), delay);
       };
@@ -598,10 +581,6 @@
       return String(text).replace(/[&<>"']/g, m => map[m]);
     }
 
-    function isValidRow(row) {
-      return Array.isArray(row) && row.length >= 1 && typeof row[0] === 'string' && row[0].trim().length > 0;
-    }
-
     function normalizeRow(row) {
       return [
         String(row[0] || '').trim(),
@@ -611,39 +590,10 @@
     }
 
     // ================================================================
-    //  2. 数据管理层
+    // 账号管理
     // ================================================================
-
     const ACCOUNT_KEY = 'car_accounts';
     const CURRENT_KEY = 'car_current_account';
-
-    function getDataKey() { return 'car_data_' + currentAccount; }
-    function getTrashKey() { return 'car_trash_' + currentAccount; }
-
-    function loadData() {
-      data = safeJSONParse(localStorage.getItem(getDataKey()));
-      return data;
-    }
-
-    function saveData() {
-      localStorage.setItem(getDataKey(), JSON.stringify(data));
-    }
-
-    function loadTrash() {
-      trash = safeJSONParse(localStorage.getItem(getTrashKey()));
-      const now = Date.now();
-      trash = trash.filter(t => (now - (t.time || 0)) < 7 * 24 * 60 * 60 * 1000);
-      saveTrash();
-      return trash;
-    }
-
-    function saveTrash() {
-      localStorage.setItem(getTrashKey(), JSON.stringify(trash));
-    }
-
-    // ================================================================
-    //  3. 账号管理
-    // ================================================================
 
     let accounts = safeJSONParse(localStorage.getItem(ACCOUNT_KEY), ['default']);
     let currentAccount = localStorage.getItem(CURRENT_KEY) || 'default';
@@ -653,60 +603,105 @@
       localStorage.setItem(CURRENT_KEY, currentAccount);
     }
 
+    function getDataKey() { return 'car_data_' + currentAccount; }
+    function getTrashKey() { return 'car_trash_' + currentAccount; }
+
+    // ================================================================
+    // 数据 & 回收站
+    // ================================================================
     let data = [];
     let trash = [];
     let editingIndex = -1;
     let pendingImport = null;
     let currentTab = 'data';
 
-    // ================================================================
-    //  4. 渲染引擎
-    // ================================================================
+    function loadData() {
+      data = safeJSONParse(localStorage.getItem(getDataKey()));
+    }
 
+    function saveData() {
+      localStorage.setItem(getDataKey(), JSON.stringify(data));
+      updateStats();
+    }
+
+    function loadTrash() {
+      trash = safeJSONParse(localStorage.getItem(getTrashKey()));
+      const now = Date.now();
+      trash = trash.filter(t => (now - (t.time || 0)) < 7 * 24 * 60 * 60 * 1000);
+      saveTrash();
+    }
+
+    function saveTrash() {
+      localStorage.setItem(getTrashKey(), JSON.stringify(trash));
+      updateStats();
+    }
+
+    function updateStats() {
+      $('totalCount').textContent = data.length;
+      $('trashCount').textContent = trash.length;
+      $('currentAccountDisplay').textContent = currentAccount;
+    }
+
+    function daysLeft(time) {
+      const left = 7 - Math.floor((Date.now() - time) / (24 * 60 * 60 * 1000));
+      return left > 0 ? left : 0;
+    }
+
+    // ================================================================
+    // 渲染
+    // ================================================================
     function render() {
       loadData();
-      const kw = ($('searchInput').value || '').trim().toLowerCase();
+      const kw = $('searchInput').value.trim().toLowerCase();
       const list = $('list');
-      let filtered = kw ? data.filter(r => r[0].toLowerCase().includes(kw)) : data;
+      let filtered = kw ? data.filter(r =>
+        r[0].toLowerCase().includes(kw) ||
+        r[1].toLowerCase().includes(kw) ||
+        r[2].toLowerCase().includes(kw)
+      ) : data;
 
-      if (filtered.length === 0) {
-        list.innerHTML = `<div class="empty-state">${kw ? '🔍 未找到匹配的车型' : '📭 暂无车型数据'}</div>`;
+      if (!filtered.length) {
+        list.innerHTML = `<div class="empty-state">${kw ? '🔍 未找到匹配的车型' : '📭 暂无车型数据<br>点击右下角 ➕ 添加'}</div>`;
+        updateStats();
         return;
       }
 
-      list.innerHTML = filtered.map((r) => {
-        const realIndex = data.indexOf(r);
+      list.innerHTML = filtered.map((r, i) => {
+        const idx = data.indexOf(r);
         return `
           <div class="card">
             <h3>${escapeHtml(r[0])}</h3>
             <p>${escapeHtml(r[1])}</p>
             <p>${escapeHtml(r[2])}</p>
             <div class="card-actions">
-              <button class="edit" onclick="editRecord(${realIndex})">✏️ 编辑</button>
-              <button class="del" onclick="deleteRecord(${realIndex})">🗑️ 删除</button>
+              <button class="edit" onclick="editRecord(${idx})">✏️ 编辑</button>
+              <button class="del" onclick="deleteRecord(${idx})">🗑️ 删除</button>
             </div>
           </div>
         `;
       }).join('');
+      updateStats();
     }
 
     function renderTrash() {
       loadTrash();
       const list = $('list');
-      if (trash.length === 0) {
+      if (!trash.length) {
         list.innerHTML = `<div class="empty-state">🗑️ 回收站为空</div>`;
+        updateStats();
         return;
       }
 
       list.innerHTML = `
         <div style="display:flex; justify-content:flex-end; margin-bottom:4px;">
-          <button onclick="clearTrash()" style="background:#fee9e7; border:none; padding:6px 16px; border-radius:30px; color:#b91c1c; font-size:13px; cursor:pointer;">🗑️ 清空回收站</button>
+          <button onclick="clearTrash()" style="background:#fee9e7; border:none; padding:8px 16px; border-radius:30px; color:#b91c1c; font-size:13px; font-weight:500; cursor:pointer; min-height:40px;">🗑️ 清空回收站</button>
         </div>
         ${trash.map((t, idx) => `
           <div class="card trash-card">
             <h3>${escapeHtml(t.row[0])}</h3>
             <p>${escapeHtml(t.row[1])}</p>
             <p>${escapeHtml(t.row[2])}</p>
+            <div class="trash-info">⏳ 剩余 ${daysLeft(t.time)} 天自动清理</div>
             <div class="card-actions">
               <button class="edit" onclick="restoreRecord(${idx})">↩️ 恢复</button>
               <button class="del" onclick="permanentDelete(${idx})">💀 彻底删除</button>
@@ -714,60 +709,102 @@
           </div>
         `).join('')}
       `;
+      updateStats();
     }
 
     function renderAccount() {
       accounts = safeJSONParse(localStorage.getItem(ACCOUNT_KEY), ['default']);
       const list = $('list');
-      list.innerHTML = accounts.map(acc => `
-        <div class="card account-card">
-          <div class="account-header">
-            <span class="account-name">${escapeHtml(acc)}</span>
-            ${acc === currentAccount ? '<span class="account-badge">✓ 当前</span>' : ''}
-          </div>
-          <div class="card-actions">
-            ${acc !== currentAccount ? `<button class="edit" onclick="switchAccount('${escapeHtml(acc)}')">切换</button>` : ''}
-            ${acc !== 'default' ? `<button class="del" onclick="deleteAccount('${escapeHtml(acc)}')">删除</button>` : ''}
-          </div>
+      list.innerHTML = `
+        <div class="card" style="border-left-color:#8b5cf6;">
+          <p style="font-size:14px; color:#64748b; margin-bottom:12px;">
+            👤 当前账号：<strong style="color:#0f2b4b;">${currentAccount}</strong>
+          </p>
+          <p style="font-size:13px; color:#94a3b8; margin-bottom:12px;">
+            切换账号可隔离不同数据
+          </p>
         </div>
-      `).join('');
+        ${accounts.map(acc => `
+          <div class="card account-card">
+            <div class="account-header">
+              <span class="account-name">${escapeHtml(acc)}</span>
+              ${acc === currentAccount ? '<span class="account-badge">✓ 当前</span>' : ''}
+            </div>
+            <div class="card-actions">
+              ${acc !== currentAccount ? `<button class="edit" onclick="switchAccount('${escapeHtml(acc)}')">切换</button>` : ''}
+              ${acc !== 'default' ? `<button class="del" onclick="deleteAccount('${escapeHtml(acc)}')">删除</button>` : ''}
+            </div>
+          </div>
+        `).join('')}
+      `;
+      updateStats();
+    }
+
+    function renderStats() {
+      loadData(); loadTrash();
+      $('list').innerHTML = `
+        <div class="card" style="border-left-color:#8b5cf6;">
+          <h3>📊 数据统计</h3>
+          <div style="padding:8px 0;">
+            <p style="display:flex; justify-content:space-between; border-bottom:1px solid #f1f5f9; padding:8px 0;">
+              <span>总数据量</span><strong style="color:#1a5fb4; font-size:22px;">${data.length}</strong>
+            </p>
+            <p style="display:flex; justify-content:space-between; border-bottom:1px solid #f1f5f9; padding:8px 0;">
+              <span>回收站</span><strong style="color:#b91c1c; font-size:22px;">${trash.length}</strong>
+            </p>
+            <p style="display:flex; justify-content:space-between; padding:8px 0;">
+              <span>当前账号</span><strong style="color:#0f2b4b;">${currentAccount}</strong>
+            </p>
+          </div>
+          <p style="font-size:13px; color:#94a3b8; margin-top:12px;">
+            💾 数据存储在浏览器本地，切换账号数据隔离
+          </p>
+        </div>
+      `;
+      updateStats();
+    }
+
+    function renderBackup() {
+      loadData(); loadTrash();
+      $('list').innerHTML = `
+        <div class="card" style="border-left-color:#8b5cf6;">
+          <h3>💾 数据备份</h3>
+          <div style="padding:8px 0;">
+            <p style="display:flex; justify-content:space-between;"><span>当前账号</span><strong>${currentAccount}</strong></p>
+            <p style="display:flex; justify-content:space-between;"><span>数据量</span><strong style="color:#1a5fb4;">${data.length}</strong></p>
+            <p style="display:flex; justify-content:space-between;"><span>回收站</span><strong style="color:#b91c1c;">${trash.length}</strong></p>
+          </div>
+          <div class="card-actions" style="margin-top:14px;">
+            <button class="edit" onclick="createBackup()">💾 创建备份</button>
+            <button class="edit" onclick="restoreBackup()">📂 恢复备份</button>
+          </div>
+          <p style="font-size:12px; color:#94a3b8; margin-top:10px; text-align:center;">
+            ⚠️ 备份文件为 JSON 格式，包含所有数据
+          </p>
+        </div>
+      `;
+      updateStats();
     }
 
     // ================================================================
-    //  5. 搜索
+    // Tab 切换
     // ================================================================
-
-    const debouncedSearch = debounce(() => {
-      if (currentTab === 'data') render();
-    }, 300);
-
-    $('searchInput').addEventListener('input', debouncedSearch);
-
-    function handleSearch() {
-      if (currentTab === 'data') render();
-    }
-
-    // ================================================================
-    //  6. Tab 切换
-    // ================================================================
-
     function switchTab(tab, el) {
       currentTab = tab;
       document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
       el.classList.add('active');
       $('searchInput').value = '';
 
-      switch (tab) {
-        case 'data': render(); break;
-        case 'trash': renderTrash(); break;
-        case 'account': renderAccount(); break;
-      }
+      if (tab === 'data') render();
+      if (tab === 'stats') renderStats();
+      if (tab === 'backup') renderBackup();
+      if (tab === 'trash') renderTrash();
+      if (tab === 'account') renderAccount();
     }
 
     // ================================================================
-    //  7. 新增 / 编辑
+    // 新增 / 编辑 / 删除
     // ================================================================
-
     function openForm() {
       editingIndex = -1;
       $('formTitle').textContent = '新增车型';
@@ -775,7 +812,7 @@
       $('contentInput').value = '';
       $('remarkInput').value = '';
       $('formModal').classList.add('show');
-      setTimeout(() => $('modelInput').focus(), 100);
+      setTimeout(() => $('modelInput').focus(), 200);
     }
 
     function closeForm() {
@@ -812,50 +849,46 @@
       showToast('✅ 已添加');
     }
 
-    function editRecord(index) {
-      editingIndex = index;
-      const r = data[index];
+    function editRecord(i) {
+      editingIndex = i;
+      const r = data[i];
       $('formTitle').textContent = '编辑车型';
       $('modelInput').value = r[0];
       $('contentInput').value = r[1];
       $('remarkInput').value = r[2];
       $('formModal').classList.add('show');
-      setTimeout(() => $('modelInput').focus(), 100);
+      setTimeout(() => $('modelInput').focus(), 200);
     }
 
-    // ================================================================
-    //  8. 删除 & 回收站
-    // ================================================================
-
-    function deleteRecord(index) {
+    function deleteRecord(i) {
       if (!confirm('将该记录移至回收站？')) return;
-      trash.unshift({ row: data[index], time: Date.now() });
+      trash.unshift({ row: data[i], time: Date.now() });
       saveTrash();
-      data.splice(index, 1);
+      data.splice(i, 1);
       saveData();
       render();
       showToast('🗑️ 已移入回收站');
     }
 
-    function restoreRecord(index) {
-      data.push(trash[index].row);
+    function restoreRecord(i) {
+      data.push(trash[i].row);
       saveData();
-      trash.splice(index, 1);
+      trash.splice(i, 1);
       saveTrash();
       renderTrash();
       showToast('↩️ 已恢复');
     }
 
-    function permanentDelete(index) {
-      if (!confirm('彻底删除此记录？不可恢复！')) return;
-      trash.splice(index, 1);
+    function permanentDelete(i) {
+      if (!confirm('彻底删除？不可恢复！')) return;
+      trash.splice(i, 1);
       saveTrash();
       renderTrash();
       showToast('💀 已彻底删除');
     }
 
     function clearTrash() {
-      if (!confirm('确定清空回收站？')) return;
+      if (!confirm('清空回收站？')) return;
       trash = [];
       saveTrash();
       renderTrash();
@@ -863,10 +896,22 @@
     }
 
     // ================================================================
-    //  9. 导入 / 导出 / 模板下载（核心新增）
+    // 搜索
     // ================================================================
+    const debouncedSearch = debounce(() => { if (currentTab === 'data') render(); }, 300);
+    $('searchInput').addEventListener('input', debouncedSearch);
+    $('searchInput').addEventListener('search', () => { if (currentTab === 'data') render(); });
 
+    function handleSearch() {
+      if (currentTab === 'data') render();
+    }
+
+    // ================================================================
+    // 导入 / 导出 / 模板
+    // ================================================================
     function triggerImport() {
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      document.querySelector('[data-tab="import"]')?.classList.add('active');
       $('importFileInput').click();
     }
 
@@ -885,7 +930,7 @@
             .filter(r => r[0] && String(r[0]).trim())
             .map(r => normalizeRow(r));
 
-          if (rows.length === 0) {
+          if (!rows.length) {
             showToast('⚠️ 未找到有效数据');
             return;
           }
@@ -927,7 +972,7 @@
     }
 
     function exportExcel() {
-      if (data.length === 0) {
+      if (!data.length) {
         showToast('⚠️ 暂无数据可导出');
         return;
       }
@@ -938,7 +983,7 @@
       showToast('📤 导出成功');
     }
 
-    // ✅【新增】下载导入模板
+    // ✅ 下载导入模板
     function downloadTemplate() {
       const ws = XLSX.utils.aoa_to_sheet([
         ['车型', '内容', '备注'],
@@ -952,26 +997,77 @@
     }
 
     // ================================================================
-    //  10. 账号管理
+    // 备份 / 恢复
     // ================================================================
+    function createBackup() {
+      const backup = {
+        version: '1.0',
+        account: currentAccount,
+        time: new Date().toISOString(),
+        data,
+        trash
+      };
+      const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `车型数据备份_${new Date().toLocaleDateString()}.json`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      showToast('💾 备份文件已下载');
+    }
 
+    function restoreBackup() {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.json';
+      input.onchange = function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(ev) {
+          try {
+            const backup = JSON.parse(ev.target.result);
+            if (!backup.data || !Array.isArray(backup.data)) {
+              showToast('⚠️ 无效的备份文件');
+              return;
+            }
+            if (!confirm('恢复备份将覆盖当前数据，确认？')) return;
+            data = backup.data;
+            trash = backup.trash || [];
+            saveData();
+            saveTrash();
+            render();
+            showToast(`✅ 已恢复 ${data.length} 条数据`);
+          } catch {
+            showToast('⚠️ 备份文件解析失败');
+          }
+        };
+        reader.readAsText(file);
+      };
+      input.click();
+    }
+
+    // ================================================================
+    // 账号管理
+    // ================================================================
     function switchAccount(acc) {
       if (acc === currentAccount) return;
+      if (!confirm(`切换到账号「${acc}」？`)) return;
       currentAccount = acc;
       localStorage.setItem(CURRENT_KEY, acc);
       loadData();
       loadTrash();
       renderAccount();
-      if (currentTab === 'data') render();
-      else if (currentTab === 'trash') renderTrash();
+      render();
       showToast(`👤 已切换到：${acc}`);
     }
 
     function deleteAccount(acc) {
       if (acc === 'default') return;
       if (!confirm(`删除账号「${acc}」？数据将被清空！`)) return;
-      localStorage.removeItem('car_data_' + acc);
-      localStorage.removeItem('car_trash_' + acc);
+      localStorage.removeItem(getDataKey());
+      localStorage.removeItem(getTrashKey());
       accounts = accounts.filter(a => a !== acc);
       localStorage.setItem(ACCOUNT_KEY, JSON.stringify(accounts));
       if (acc === currentAccount) switchAccount('default');
@@ -980,9 +1076,8 @@
     }
 
     // ================================================================
-    //  11. 初始化
+    // 初始化
     // ================================================================
-
     loadData();
     loadTrash();
     render();
@@ -1001,10 +1096,17 @@
     window.closeImport = closeImport;
     window.exportExcel = exportExcel;
     window.downloadTemplate = downloadTemplate;
+    window.createBackup = createBackup;
+    window.restoreBackup = restoreBackup;
     window.switchAccount = switchAccount;
     window.deleteAccount = deleteAccount;
+    window.render = render;
+    window.renderTrash = renderTrash;
+    window.renderAccount = renderAccount;
+    window.renderStats = renderStats;
+    window.renderBackup = renderBackup;
     window.handleSearch = handleSearch;
     window.showToast = showToast;
   </script>
 </body>
-</html>
+</html>   
