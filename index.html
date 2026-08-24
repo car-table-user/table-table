@@ -35,17 +35,26 @@ body {
 .search-box {
     padding: 12px;
     background: white;
+    display: flex;
+    gap: 8px;
 }
 .search-box input {
-    width: 100%;
+    flex: 1;
     padding: 12px;
     font-size: 16px;
     border-radius: 10px;
     border: 1px solid #ddd;
 }
+.search-box button {
+    padding: 0 14px;
+    border-radius: 10px;
+    border: none;
+    background: #ccc;
+    font-size: 18px;
+    cursor: pointer;
+}
 .tab-content { display: none; padding: 12px; }
 .tab-content.active { display: block; }
-
 .card {
     background: white;
     border-radius: 12px;
@@ -68,9 +77,11 @@ body {
     margin-top: 12px;
     display: flex;
     gap: 12px;
+    flex-wrap: wrap;
 }
 .card-actions button {
     flex: 1;
+    min-width: 100px;
     padding: 12px;
     font-size: 14px;
     border: none;
@@ -79,7 +90,7 @@ body {
 }
 .btn-edit { background: #1a73e8; color: white; }
 .btn-del { background: #d93025; color: white; }
-
+.btn-safe { background: #1e8e3e !important; color:white; }
 .bottom-nav {
     position: fixed;
     bottom: 0;
@@ -101,7 +112,6 @@ body {
 }
 .nav-item.active { color: #1a73e8; font-weight: 600; }
 .nav-item span { font-size: 22px; display: block; }
-
 .fab {
     position: fixed;
     right: 20px;
@@ -117,7 +127,6 @@ body {
     z-index: 150;
     cursor: pointer;
 }
-
 .modal {
     display: none;
     position: fixed;
@@ -156,9 +165,7 @@ body {
     margin-bottom: 10px;
 }
 .btn-cancel { background: #ccc !important; color: #333 !important; }
-.btn-safe { background: #1e8e3e !important; }
-.btn-danger { background: #d93025 !important; }
-
+.btn-danger { background: #d93025 !important; color:white; }
 .toast {
     position: fixed;
     bottom: 90px;
@@ -171,9 +178,9 @@ body {
     font-size: 14px;
     z-index: 300;
     display: none;
+    white-space: nowrap;
 }
 .toast.show { display: block; }
-
 .panel {
     background: white;
     border-radius: 12px;
@@ -188,20 +195,17 @@ body {
 </style>
 </head>
 <body>
-
 <div class="header">
     🚗 车型信息表
     <span class="account-badge" id="accountBadge">默认账号</span>
 </div>
-
 <div class="search-box">
     <input id="searchInput" placeholder="🔍 搜索车型 / 内容 / 备注...">
+    <button onclick="App.clearSearch()">✖</button>
 </div>
-
 <div class="tab-content active" id="tabData">
     <div id="list"></div>
 </div>
-
 <div class="tab-content" id="tabStats">
     <div class="panel">
         <h4>📊 数据总览</h4>
@@ -217,7 +221,6 @@ body {
         <input type="file" accept=".xlsx,.xls" onchange="App.handleImport(event)">
     </div>
 </div>
-
 <div class="tab-content" id="tabBackup">
     <div class="panel">
         <h4>📦 手动备份</h4>
@@ -225,11 +228,12 @@ body {
     </div>
     <div id="backupList"></div>
 </div>
-
 <div class="tab-content" id="tabTrash">
+    <div class="panel">
+        <button class="btn-danger" onclick="App.emptyTrash()">🗑️ 清空回收站</button>
+    </div>
     <div id="trashList"></div>
 </div>
-
 <div class="tab-content" id="tabAccount">
     <div class="panel">
         <h4>👤 账号管理</h4>
@@ -238,7 +242,6 @@ body {
     </div>
     <div id="accountList"></div>
 </div>
-
 <div class="tab-content" id="tabSettings">
     <div class="panel">
         <h4>⚙️ 设置</h4>
@@ -246,9 +249,7 @@ body {
         <button class="btn-danger" onclick="App.clearAll()" style="margin-top:8px;">🗑️ 清空数据</button>
     </div>
 </div>
-
 <button class="fab" onclick="App.openForm()">＋</button>
-
 <!-- 表单弹窗 -->
 <div class="modal" id="formModal">
     <div class="modal-content">
@@ -261,7 +262,6 @@ body {
         <button class="btn-cancel" onclick="App.closeModal('formModal')">取消</button>
     </div>
 </div>
-
 <!-- 导入预览 -->
 <div class="modal" id="importModal">
     <div class="modal-content">
@@ -271,12 +271,9 @@ body {
         <button class="btn-cancel" onclick="App.closeModal('importModal')">取消</button>
     </div>
 </div>
-
 <div class="toast" id="toast"></div>
-
 <script>
 const App = (() => {
-
     const STORAGE_KEY = 'car_data';
     const TRASH_KEY = 'car_trash';
     const BACKUP_KEY = 'car_backups';
@@ -285,25 +282,23 @@ const App = (() => {
 
     let currentAccount = localStorage.getItem(CURRENT_ACCOUNT_KEY) || 'default';
     let pendingImport = null;
+    let toastTimer = null;
+    let searchDebounceTimer = null;
 
     const $ = id => document.getElementById(id);
+    const safeStr = v => String(v ?? '').toLowerCase();
 
     function toast(msg) {
         const t = $('toast');
         t.textContent = msg;
         t.classList.add('show');
-        setTimeout(() => t.classList.remove('show'), 2000);
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => t.classList.remove('show'), 2000);
     }
 
-    function getDataKey() {
-        return STORAGE_KEY + '_' + currentAccount;
-    }
-    function getTrashKey() {
-        return TRASH_KEY + '_' + currentAccount;
-    }
-    function getBackupKey() {
-        return BACKUP_KEY + '_' + currentAccount;
-    }
+    function getDataKey() { return STORAGE_KEY + '_' + currentAccount; }
+    function getTrashKey() { return TRASH_KEY + '_' + currentAccount; }
+    function getBackupKey() { return BACKUP_KEY + '_' + currentAccount; }
 
     function loadData() {
         return JSON.parse(localStorage.getItem(getDataKey()) || '[]');
@@ -326,14 +321,15 @@ const App = (() => {
         const data = loadData();
         const kw = $('searchInput').value.toLowerCase();
         const list = $('list');
-
-        if (data.length === 0) {
-            list.innerHTML = '<div class="empty-state">🚗<br>暂无数据<br>点右下角 ＋ 添加</div>';
+        const result = data.filter(row =>
+            !kw || safeStr(row[0]).includes(kw) || safeStr(row[1]).includes(kw) || safeStr(row[2]).includes(kw)
+        );
+        if (!result.length) {
+            list.innerHTML = '<div class="empty-state">🔍<br>未找到匹配数据</div>';
             return;
         }
-
-        list.innerHTML = data.map((row, i) => {
-            if (kw && !row.join('').toLowerCase().includes(kw)) return '';
+        list.innerHTML = result.map(row => {
+            const i = data.indexOf(row);
             return `
                 <div class="card">
                     <h3>${row[0]}</h3>
@@ -368,9 +364,6 @@ const App = (() => {
             `).join('');
     }
 
-    /* ===============================
-       ✅ 核心修改：新增 / 编辑校验
-       =============================== */
     function saveRow() {
         const model = $('inputModel').value.trim();
         if (!model) {
@@ -378,35 +371,20 @@ const App = (() => {
             $('inputModel').focus();
             return;
         }
-
         const data = loadData();
         const idx = parseInt($('inputIndex').value);
         const isEdit = idx >= 0;
-
-        // ✅ 重复校验
         for (let i = 0; i < data.length; i++) {
-            if (isEdit && i === idx) continue; // 编辑时跳过自己
+            if (isEdit && i === idx) continue;
             if (data[i][0] === model) {
-                toast(`⚠️ 车型「${model}」已存在，请勿重复添加`);
+                toast(`⚠️ 车型「${model}」已存在`);
                 $('inputModel').focus();
                 return;
             }
         }
-
-        const row = [
-            model,
-            $('inputContent').value.trim(),
-            $('inputRemark').value.trim()
-        ];
-
-        if (isEdit) {
-            data[idx] = row;
-            toast('✅ 编辑成功');
-        } else {
-            data.push(row);
-            toast('✅ 新增成功');
-        }
-
+        const row = [model, $('inputContent').value.trim(), $('inputRemark').value.trim()];
+        isEdit ? data[idx] = row : data.push(row);
+        toast(isEdit ? '✅ 编辑成功' : '✅ 新增成功');
         saveData(data);
         closeModal('formModal');
     }
@@ -416,7 +394,7 @@ const App = (() => {
         $('inputModel').value = '';
         $('inputContent').value = '';
         $('inputRemark').value = '';
-        $('inputIndex').value = -1;
+        $('inputIndex').value = '';
         $('formModal').classList.add('show');
     }
 
@@ -433,9 +411,8 @@ const App = (() => {
     function deleteRow(i) {
         if (!confirm('确定删除？将进入回收站')) return;
         const data = loadData();
-        const item = data.splice(i, 1)[0];
         const trash = loadTrash();
-        trash.unshift({ row: item, deletedAt: Date.now() });
+        trash.unshift({ row: data.splice(i, 1)[0], deletedAt: Date.now() });
         saveTrash(trash);
         saveData(data);
         toast('已移入回收站');
@@ -443,9 +420,8 @@ const App = (() => {
 
     function restoreFromTrash(i) {
         const trash = loadTrash();
-        const item = trash.splice(i, 1)[0];
         const data = loadData();
-        data.push(item.row);
+        data.push(trash.splice(i, 1)[0].row);
         saveTrash(trash);
         saveData(data);
         toast('已恢复');
@@ -459,6 +435,13 @@ const App = (() => {
         toast('已彻底删除');
     }
 
+    function emptyTrash() {
+        if (!confirm('彻底清空回收站？不可恢复！')) return;
+        localStorage.removeItem(getTrashKey());
+        renderTrashList();
+        toast('回收站已清空');
+    }
+
     function handleImport(e) {
         const file = e.target.files[0];
         if (!file) return;
@@ -467,12 +450,13 @@ const App = (() => {
             const wb = XLSX.read(new Uint8Array(ev.target.result), { type: 'array' });
             const ws = wb.Sheets[wb.SheetNames[0]];
             const json = XLSX.utils.sheet_to_json(ws, { header: 1 });
+            const map = new Map();
             pendingImport = json.slice(1).filter(r => r[0]).map(r => [
                 String(r[0]).trim(),
                 String(r[1] || '').trim(),
                 String(r[2] || '').trim()
-            ]);
-            $('importPreview').innerHTML = `将新增 <strong>${pendingImport.length}</strong> 条数据（旧数据不动）`;
+            ]).filter(r => !map.has(r[0]) && map.set(r[0], 1));
+            $('importPreview').innerHTML = `将新增 <strong>${pendingImport.length}</strong> 条数据（自动跳过重复车型）`;
             $('importModal').classList.add('show');
             e.target.value = '';
         };
@@ -482,25 +466,37 @@ const App = (() => {
     function confirmImport() {
         if (!pendingImport) return;
         const data = loadData();
-        pendingImport.forEach(r => data.push(r));
+        const existing = new Set(data.map(r => r[0]));
+        let imported = 0, skipped = 0;
+        pendingImport.forEach(r => {
+            if (existing.has(r[0])) skipped++;
+            else {
+                data.push(r);
+                existing.add(r[0]);
+                imported++;
+            }
+        });
         saveData(data);
         pendingImport = null;
         closeModal('importModal');
-        toast('导入成功');
+        toast(`导入 ${imported} 条，跳过重复 ${skipped} 条`);
+        document.querySelector('[data-tab="tabData"]').click();
     }
 
     function exportExcel() {
+        const ts = new Date().toISOString().replace(/[:T]/g,'-').slice(0,19);
         const ws = XLSX.utils.aoa_to_sheet([['车型','内容','备注'], ...loadData()]);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, '车型');
-        XLSX.writeFile(wb, '车型信息表.xlsx');
+        XLSX.writeFile(wb, `车型信息表_${ts}.xlsx`);
     }
 
     function exportTXT() {
+        const ts = new Date().toISOString().replace(/[:T]/g,'-').slice(0,19);
         const txt = loadData().map(r => r.join('\t')).join('\n');
         const a = document.createElement('a');
         a.href = URL.createObjectURL(new Blob(['\uFEFF'+txt], {type:'text/plain'}));
-        a.download = '车型信息表.txt';
+        a.download = `车型信息表_${ts}.txt`;
         a.click();
     }
 
@@ -508,9 +504,34 @@ const App = (() => {
         const data = loadData();
         const backups = JSON.parse(localStorage.getItem(getBackupKey()) || '[]');
         backups.unshift({ time: Date.now(), data });
-        localStorage.setItem(getBackupKey(), JSON.stringify(backups.slice(0, 20)));
+        // 粗略限容（≈4MB）
+        let size = 0;
+        const trimmed = [];
+        for (const b of backups) {
+            const s = JSON.stringify(b).length;
+            if (size + s > 4 * 1024 * 1024) break;
+            size += s;
+            trimmed.push(b);
+        }
+        localStorage.setItem(getBackupKey(), JSON.stringify(trimmed));
         toast('备份成功');
         renderBackupList();
+    }
+
+    function restoreBackup(index) {
+        if (!confirm('⚠️ 恢复备份将【覆盖当前所有车型数据】，且不可撤销！\n确定继续吗？')) return;
+        const backups = JSON.parse(localStorage.getItem(getBackupKey()) || '[]');
+        saveData(backups[index].data);
+        toast('✅ 备份恢复完成');
+    }
+
+    function downloadBackup(index) {
+        const backups = JSON.parse(localStorage.getItem(getBackupKey()) || '[]');
+        const b = backups[index];
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(new Blob([JSON.stringify(b,null,2)], {type:'application/json'}));
+        a.download = `车型备份_${new Date(b.time).toLocaleDateString().replace(/\//g,'-')}.json`;
+        a.click();
     }
 
     function renderBackupList() {
@@ -522,13 +543,17 @@ const App = (() => {
                 <div class="card">
                     <p>${new Date(b.time).toLocaleString()}</p>
                     <p>${b.data.length} 条数据</p>
+                    <div class="card-actions">
+                        <button class="btn-safe" onclick="App.restoreBackup(${i})">🔄 恢复备份</button>
+                        <button class="btn-edit" onclick="App.downloadBackup(${i})">💾 下载备份</button>
+                    </div>
                 </div>
             `).join('');
     }
 
     function createAccount() {
         const name = $('newAccountName').value.trim();
-        if (!name) return;
+        if (!name) return toast('账号名不能为空');
         const accounts = JSON.parse(localStorage.getItem(ACCOUNT_KEY) || '[]');
         if (accounts.includes(name)) return toast('账号已存在');
         accounts.push(name);
@@ -538,20 +563,51 @@ const App = (() => {
         renderAccounts();
     }
 
+    function switchAccount(acc) {
+        currentAccount = acc;
+        localStorage.setItem(CURRENT_ACCOUNT_KEY, acc);
+        $('accountBadge').textContent = acc;
+        renderList();
+        renderTrashList();
+        renderBackupList();
+        toast('已切换到：' + acc);
+    }
+
+    function deleteAccount(acc) {
+        if (acc === 'default') return;
+        if (!confirm(`确定删除账号【${acc}】？该账号所有数据将彻底清除！`)) return;
+        localStorage.removeItem(STORAGE_KEY + '_' + acc);
+        localStorage.removeItem(TRASH_KEY + '_' + acc);
+        localStorage.removeItem(BACKUP_KEY + '_' + acc);
+        let accounts = JSON.parse(localStorage.getItem(ACCOUNT_KEY) || '[]');
+        accounts = accounts.filter(x => x !== acc);
+        localStorage.setItem(ACCOUNT_KEY, JSON.stringify(accounts));
+        if (currentAccount === acc) switchAccount('default');
+        renderAccounts();
+        toast('账号已删除');
+    }
+
     function renderAccounts() {
         const list = $('accountList');
-        const accounts = JSON.parse(localStorage.getItem(ACCOUNT_KEY) || '[]');
+        let accounts = JSON.parse(localStorage.getItem(ACCOUNT_KEY) || '[]');
+        if (!accounts.includes(currentAccount)) accounts.push(currentAccount);
         list.innerHTML = accounts.map(acc => `
             <div class="card">
                 <strong>${acc}</strong>
                 ${acc === currentAccount ? '<span style="color:#1a73e8;">（当前）</span>' : ''}
+                <div class="card-actions">
+                    ${acc !== currentAccount ? `<button class="btn-edit" onclick="App.switchAccount('${acc}')">切换</button>` : ''}
+                    ${acc !== 'default' ? `<button class="btn-del" onclick="App.deleteAccount('${acc}')">删除账号</button>` : ''}
+                </div>
             </div>
         `).join('');
         $('accountBadge').textContent = currentAccount;
     }
 
     function clearSearch() {
-        $('searchInput').value = '';
+        const input = $('searchInput');
+        input.value = '';
+        input.blur();
         renderList();
         toast('已清除搜索');
     }
@@ -575,7 +631,10 @@ const App = (() => {
     renderTrashList();
     renderAccounts();
 
-    $('searchInput').addEventListener('input', renderList);
+    $('searchInput').addEventListener('input', () => {
+        clearTimeout(searchDebounceTimer);
+        searchDebounceTimer = setTimeout(renderList, 250);
+    });
 
     document.querySelectorAll('.nav-item').forEach(item => {
         item.onclick = () => {
@@ -593,18 +652,31 @@ const App = (() => {
         m.onclick = e => { if (e.target === m) closeModal(m.id); };
     });
 
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape') {
+            document.querySelectorAll('.modal.show').forEach(m => closeModal(m.id));
+        }
+    });
+
     return {
         openForm, editRow, saveRow, deleteRow,
-        restoreFromTrash, deleteFromTrash,
+        restoreFromTrash, deleteFromTrash, emptyTrash,
         handleImport, confirmImport,
         exportExcel, exportTXT,
-        manualBackup, createAccount,
+        manualBackup, restoreBackup, downloadBackup,
+        createAccount, switchAccount, deleteAccount,
         clearSearch, clearAll,
         closeModal
     };
-
 })();
 </script>
+<div class="bottom-nav">
+    <div class="nav-item active" data-tab="tabData"><span>🏠</span>数据</div>
+    <div class="nav-item" data-tab="tabStats"><span>📊</span>统计</div>
+    <div class="nav-item" data-tab="tabBackup"><span>📦</span>备份</div>
+    <div class="nav-item" data-tab="tabTrash"><span>🗑️</span>回收站</div>
+    <div class="nav-item" data-tab="tabAccount"><span>👤</span>账号</div>
+    <div class="nav-item" data-tab="tabSettings"><span>⚙️</span>设置</div>
+</div>
 </body>
 </html>
-
