@@ -2,9 +2,12 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>车型信息表</title>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+<!-- ✅ 国内 CDN，解决点不开 -->
+<script src="https://cdn.bootcdn.net/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
 <style>
 * { box-sizing: border-box; }
 body {
@@ -90,7 +93,7 @@ body {
 }
 .btn-edit { background: #1a73e8; color: white; }
 .btn-del { background: #d93025; color: white; }
-.btn-safe { background: #1e8e3e !important; color:white; }
+.btn-safe { background: #1e8e3e; color: white; }
 .bottom-nav {
     position: fixed;
     bottom: 0;
@@ -165,7 +168,6 @@ body {
     margin-bottom: 10px;
 }
 .btn-cancel { background: #ccc !important; color: #333 !important; }
-.btn-danger { background: #d93025 !important; color:white; }
 .toast {
     position: fixed;
     bottom: 90px;
@@ -181,12 +183,6 @@ body {
     white-space: nowrap;
 }
 .toast.show { display: block; }
-.panel {
-    background: white;
-    border-radius: 12px;
-    padding: 16px;
-    margin-bottom: 12px;
-}
 .empty-state {
     text-align: center;
     color: #999;
@@ -195,61 +191,63 @@ body {
 </style>
 </head>
 <body>
+
 <div class="header">
     🚗 车型信息表
     <span class="account-badge" id="accountBadge">默认账号</span>
 </div>
+
 <div class="search-box">
     <input id="searchInput" placeholder="🔍 搜索车型 / 内容 / 备注...">
     <button onclick="App.clearSearch()">✖</button>
 </div>
+
 <div class="tab-content active" id="tabData">
     <div id="list"></div>
 </div>
+
 <div class="tab-content" id="tabStats">
-    <div class="panel">
+    <div class="card">
         <h4>📊 数据总览</h4>
         <p id="statsText"></p>
     </div>
-    <div class="panel">
+    <div class="card">
         <h4>📤 导出</h4>
         <button onclick="App.exportExcel()">📊 导出 Excel</button>
         <button onclick="App.exportTXT()" style="margin-top:8px;">📄 导出 TXT</button>
     </div>
-    <div class="panel">
+    <div class="card">
         <h4>📥 导入 Excel（直接新增）</h4>
         <input type="file" accept=".xlsx,.xls" onchange="App.handleImport(event)">
     </div>
 </div>
+
 <div class="tab-content" id="tabBackup">
-    <div class="panel">
+    <div class="card">
         <h4>📦 手动备份</h4>
         <button class="btn-safe" onclick="App.manualBackup()">📸 手动备份</button>
     </div>
     <div id="backupList"></div>
 </div>
+
 <div class="tab-content" id="tabTrash">
-    <div class="panel">
-        <button class="btn-danger" onclick="App.emptyTrash()">🗑️ 清空回收站</button>
+    <div class="card">
+        <button class="btn-del" onclick="App.emptyTrash()">🗑️ 清空回收站</button>
     </div>
     <div id="trashList"></div>
 </div>
+
 <div class="tab-content" id="tabAccount">
-    <div class="panel">
+    <div class="card">
         <h4>👤 账号管理</h4>
         <input id="newAccountName" placeholder="新账号名" style="margin-bottom:8px;">
         <button onclick="App.createAccount()">＋ 新建账号</button>
     </div>
     <div id="accountList"></div>
 </div>
-<div class="tab-content" id="tabSettings">
-    <div class="panel">
-        <h4>⚙️ 设置</h4>
-        <button onclick="App.clearSearch()">清除搜索</button>
-        <button class="btn-danger" onclick="App.clearAll()" style="margin-top:8px;">🗑️ 清空数据</button>
-    </div>
-</div>
+
 <button class="fab" onclick="App.openForm()">＋</button>
+
 <!-- 表单弹窗 -->
 <div class="modal" id="formModal">
     <div class="modal-content">
@@ -262,6 +260,7 @@ body {
         <button class="btn-cancel" onclick="App.closeModal('formModal')">取消</button>
     </div>
 </div>
+
 <!-- 导入预览 -->
 <div class="modal" id="importModal">
     <div class="modal-content">
@@ -271,7 +270,16 @@ body {
         <button class="btn-cancel" onclick="App.closeModal('importModal')">取消</button>
     </div>
 </div>
+
 <div class="toast" id="toast"></div>
+
+<script>
+/* ========= 防崩保护 ========= */
+if (typeof XLSX === 'undefined') {
+    alert('⚠️ Excel 组件加载失败，请换浏览器或网络后重试');
+}
+</script>
+
 <script>
 const App = (() => {
     const STORAGE_KEY = 'car_data';
@@ -283,72 +291,62 @@ const App = (() => {
     let currentAccount = localStorage.getItem(CURRENT_ACCOUNT_KEY) || 'default';
     let pendingImport = null;
     let toastTimer = null;
-    let searchDebounceTimer = null;
 
     const $ = id => document.getElementById(id);
-    const safeStr = v => String(v ?? '').toLowerCase();
-
-    function toast(msg) {
+    const toast = msg => {
         const t = $('toast');
         t.textContent = msg;
         t.classList.add('show');
         clearTimeout(toastTimer);
         toastTimer = setTimeout(() => t.classList.remove('show'), 2000);
-    }
+    };
 
-    function getDataKey() { return STORAGE_KEY + '_' + currentAccount; }
-    function getTrashKey() { return TRASH_KEY + '_' + currentAccount; }
-    function getBackupKey() { return BACKUP_KEY + '_' + currentAccount; }
+    const getDataKey = () => STORAGE_KEY + '_' + currentAccount;
+    const getTrashKey = () => TRASH_KEY + '_' + currentAccount;
+    const getBackupKey = () => BACKUP_KEY + '_' + currentAccount;
 
-    function loadData() {
-        return JSON.parse(localStorage.getItem(getDataKey()) || '[]');
-    }
-    function saveData(data) {
+    const loadData = () => JSON.parse(localStorage.getItem(getDataKey()) || '[]');
+    const saveData = data => {
         localStorage.setItem(getDataKey(), JSON.stringify(data));
         renderList();
         renderStats();
-    }
+    };
 
-    function loadTrash() {
-        return JSON.parse(localStorage.getItem(getTrashKey()) || '[]');
-    }
-    function saveTrash(data) {
+    const loadTrash = () => JSON.parse(localStorage.getItem(getTrashKey()) || '[]');
+    const saveTrash = data => {
         localStorage.setItem(getTrashKey(), JSON.stringify(data));
         renderTrashList();
-    }
+    };
 
-    function renderList() {
+    const renderList = () => {
         const data = loadData();
         const kw = $('searchInput').value.toLowerCase();
         const list = $('list');
-        const result = data.filter(row =>
-            !kw || safeStr(row[0]).includes(kw) || safeStr(row[1]).includes(kw) || safeStr(row[2]).includes(kw)
+        const result = data.filter(r =>
+            r[0].toLowerCase().includes(kw) ||
+            r[1].toLowerCase().includes(kw) ||
+            r[2].toLowerCase().includes(kw)
         );
         if (!result.length) {
-            list.innerHTML = '<div class="empty-state">🔍<br>未找到匹配数据</div>';
+            list.innerHTML = '<div class="empty-state">🚗<br>暂无数据</div>';
             return;
         }
-        list.innerHTML = result.map(row => {
-            const i = data.indexOf(row);
-            return `
-                <div class="card">
-                    <h3>${row[0]}</h3>
-                    <p>${row[1]}</p>
-                    <p>${row[2]}</p>
-                    <div class="card-actions">
-                        <button class="btn-edit" onclick="App.editRow(${i})">✏️ 编辑</button>
-                        <button class="btn-del" onclick="App.deleteRow(${i})">🗑️ 删除</button>
-                    </div>
+        list.innerHTML = result.map((r, i) => `
+            <div class="card">
+                <h3>${r[0]}</h3>
+                <p>${r[1]}</p>
+                <p>${r[2]}</p>
+                <div class="card-actions">
+                    <button class="btn-edit" onclick="App.editRow(${data.indexOf(r)})">✏️ 编辑</button>
+                    <button class="btn-del" onclick="App.deleteRow(${data.indexOf(r)})">🗑️ 删除</button>
                 </div>
-            `;
-        }).join('');
-    }
+            </div>
+        `).join('');
+    };
 
-    function renderStats() {
-        $('statsText').textContent = `共 ${loadData().length} 条数据`;
-    }
+    const renderStats = () => $('statsText').textContent = `共 ${loadData().length} 条数据`;
 
-    function renderTrashList() {
+    const renderTrashList = () => {
         const trash = loadTrash();
         $('trashList').innerHTML = trash.length === 0
             ? '<div class="empty-state">🗑️<br>回收站为空</div>'
@@ -362,53 +360,42 @@ const App = (() => {
                     </div>
                 </div>
             `).join('');
-    }
+    };
 
-    function saveRow() {
+    const saveRow = () => {
         const model = $('inputModel').value.trim();
-        if (!model) {
-            toast('⚠️ 车型不能为空');
-            $('inputModel').focus();
-            return;
-        }
+        if (!model) return toast('车型不能为空');
         const data = loadData();
         const idx = parseInt($('inputIndex').value);
-        const isEdit = idx >= 0;
-        for (let i = 0; i < data.length; i++) {
-            if (isEdit && i === idx) continue;
-            if (data[i][0] === model) {
-                toast(`⚠️ 车型「${model}」已存在`);
-                $('inputModel').focus();
-                return;
-            }
-        }
+        const exists = data.find((r, i) => r[0] === model && i !== idx);
+        if (exists) return toast('车型已存在');
         const row = [model, $('inputContent').value.trim(), $('inputRemark').value.trim()];
-        isEdit ? data[idx] = row : data.push(row);
-        toast(isEdit ? '✅ 编辑成功' : '✅ 新增成功');
+        idx >= 0 ? data[idx] = row : data.push(row);
         saveData(data);
+        toast(idx >= 0 ? '✅ 编辑成功' : '✅ 新增成功');
         closeModal('formModal');
-    }
+    };
 
-    function openForm() {
+    const openForm = () => {
         $('formTitle').textContent = '新增车型';
         $('inputModel').value = '';
         $('inputContent').value = '';
         $('inputRemark').value = '';
         $('inputIndex').value = '';
         $('formModal').classList.add('show');
-    }
+    };
 
-    function editRow(i) {
-        const row = loadData()[i];
+    const editRow = i => {
+        const r = loadData()[i];
         $('formTitle').textContent = '编辑车型';
-        $('inputModel').value = row[0];
-        $('inputContent').value = row[1];
-        $('inputRemark').value = row[2];
+        $('inputModel').value = r[0];
+        $('inputContent').value = r[1];
+        $('inputRemark').value = r[2];
         $('inputIndex').value = i;
         $('formModal').classList.add('show');
-    }
+    };
 
-    function deleteRow(i) {
+    const deleteRow = i => {
         if (!confirm('确定删除？将进入回收站')) return;
         const data = loadData();
         const trash = loadTrash();
@@ -416,33 +403,33 @@ const App = (() => {
         saveTrash(trash);
         saveData(data);
         toast('已移入回收站');
-    }
+    };
 
-    function restoreFromTrash(i) {
+    const restoreFromTrash = i => {
         const trash = loadTrash();
         const data = loadData();
         data.push(trash.splice(i, 1)[0].row);
         saveTrash(trash);
         saveData(data);
         toast('已恢复');
-    }
+    };
 
-    function deleteFromTrash(i) {
+    const deleteFromTrash = i => {
         if (!confirm('彻底删除？不可恢复！')) return;
         const trash = loadTrash();
         trash.splice(i, 1);
         saveTrash(trash);
         toast('已彻底删除');
-    }
+    };
 
-    function emptyTrash() {
+    const emptyTrash = () => {
         if (!confirm('彻底清空回收站？不可恢复！')) return;
         localStorage.removeItem(getTrashKey());
         renderTrashList();
         toast('回收站已清空');
-    }
+    };
 
-    function handleImport(e) {
+    const handleImport = e => {
         const file = e.target.files[0];
         if (!file) return;
         const reader = new FileReader();
@@ -461,9 +448,9 @@ const App = (() => {
             e.target.value = '';
         };
         reader.readAsArrayBuffer(file);
-    }
+    };
 
-    function confirmImport() {
+    const confirmImport = () => {
         if (!pendingImport) return;
         const data = loadData();
         const existing = new Set(data.map(r => r[0]));
@@ -481,30 +468,28 @@ const App = (() => {
         closeModal('importModal');
         toast(`导入 ${imported} 条，跳过重复 ${skipped} 条`);
         document.querySelector('[data-tab="tabData"]').click();
-    }
+    };
 
-    function exportExcel() {
+    const exportExcel = () => {
         const ts = new Date().toISOString().replace(/[:T]/g,'-').slice(0,19);
-        const ws = XLSX.utils.aoa_to_sheet([['车型','内容','备注'], ...loadData()]);
         const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, '车型');
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['车型','内容','备注'], ...loadData()]), '车型');
         XLSX.writeFile(wb, `车型信息表_${ts}.xlsx`);
-    }
+    };
 
-    function exportTXT() {
+    const exportTXT = () => {
         const ts = new Date().toISOString().replace(/[:T]/g,'-').slice(0,19);
         const txt = loadData().map(r => r.join('\t')).join('\n');
         const a = document.createElement('a');
         a.href = URL.createObjectURL(new Blob(['\uFEFF'+txt], {type:'text/plain'}));
         a.download = `车型信息表_${ts}.txt`;
         a.click();
-    }
+    };
 
-    function manualBackup() {
-        const data = loadData();
+    const manualBackup = () => {
         const backups = JSON.parse(localStorage.getItem(getBackupKey()) || '[]');
-        backups.unshift({ time: Date.now(), data });
-        // 粗略限容（≈4MB）
+        backups.unshift({ time: Date.now(), data: loadData() });
+        // 限容保护
         let size = 0;
         const trimmed = [];
         for (const b of backups) {
@@ -516,25 +501,25 @@ const App = (() => {
         localStorage.setItem(getBackupKey(), JSON.stringify(trimmed));
         toast('备份成功');
         renderBackupList();
-    }
+    };
 
-    function restoreBackup(index) {
+    const restoreBackup = index => {
         if (!confirm('⚠️ 恢复备份将【覆盖当前所有车型数据】，且不可撤销！\n确定继续吗？')) return;
         const backups = JSON.parse(localStorage.getItem(getBackupKey()) || '[]');
         saveData(backups[index].data);
         toast('✅ 备份恢复完成');
-    }
+    };
 
-    function downloadBackup(index) {
+    const downloadBackup = index => {
         const backups = JSON.parse(localStorage.getItem(getBackupKey()) || '[]');
         const b = backups[index];
         const a = document.createElement('a');
-        a.href = URL.createObjectURL(new Blob([JSON.stringify(b,null,2)], {type:'application/json'}));
+        a.href = URL.createObjectURL(new Blob([JSON.stringify(b, null, 2)], {type:'application/json'}));
         a.download = `车型备份_${new Date(b.time).toLocaleDateString().replace(/\//g,'-')}.json`;
         a.click();
-    }
+    };
 
-    function renderBackupList() {
+    const renderBackupList = () => {
         const list = $('backupList');
         const backups = JSON.parse(localStorage.getItem(getBackupKey()) || '[]');
         list.innerHTML = backups.length === 0
@@ -549,9 +534,9 @@ const App = (() => {
                     </div>
                 </div>
             `).join('');
-    }
+    };
 
-    function createAccount() {
+    const createAccount = () => {
         const name = $('newAccountName').value.trim();
         if (!name) return toast('账号名不能为空');
         const accounts = JSON.parse(localStorage.getItem(ACCOUNT_KEY) || '[]');
@@ -561,9 +546,9 @@ const App = (() => {
         toast('账号创建成功');
         $('newAccountName').value = '';
         renderAccounts();
-    }
+    };
 
-    function switchAccount(acc) {
+    const switchAccount = acc => {
         currentAccount = acc;
         localStorage.setItem(CURRENT_ACCOUNT_KEY, acc);
         $('accountBadge').textContent = acc;
@@ -571,9 +556,9 @@ const App = (() => {
         renderTrashList();
         renderBackupList();
         toast('已切换到：' + acc);
-    }
+    };
 
-    function deleteAccount(acc) {
+    const deleteAccount = acc => {
         if (acc === 'default') return;
         if (!confirm(`确定删除账号【${acc}】？该账号所有数据将彻底清除！`)) return;
         localStorage.removeItem(STORAGE_KEY + '_' + acc);
@@ -585,9 +570,9 @@ const App = (() => {
         if (currentAccount === acc) switchAccount('default');
         renderAccounts();
         toast('账号已删除');
-    }
+    };
 
-    function renderAccounts() {
+    const renderAccounts = () => {
         const list = $('accountList');
         let accounts = JSON.parse(localStorage.getItem(ACCOUNT_KEY) || '[]');
         if (!accounts.includes(currentAccount)) accounts.push(currentAccount);
@@ -602,28 +587,24 @@ const App = (() => {
             </div>
         `).join('');
         $('accountBadge').textContent = currentAccount;
-    }
+    };
 
-    function clearSearch() {
-        const input = $('searchInput');
-        input.value = '';
-        input.blur();
+    const clearSearch = () => {
+        $('searchInput').value = '';
         renderList();
         toast('已清除搜索');
-    }
+    };
 
-    function clearAll() {
+    const clearAll = () => {
         if (!confirm('清空当前账号所有数据？不可恢复！')) return;
         localStorage.removeItem(getDataKey());
         localStorage.removeItem(getTrashKey());
         renderList();
         renderTrashList();
         toast('已清空数据');
-    }
+    };
 
-    function closeModal(id) {
-        $(id).classList.remove('show');
-    }
+    const closeModal = id => $(id).classList.remove('show');
 
     // 初始化
     renderList();
@@ -632,8 +613,8 @@ const App = (() => {
     renderAccounts();
 
     $('searchInput').addEventListener('input', () => {
-        clearTimeout(searchDebounceTimer);
-        searchDebounceTimer = setTimeout(renderList, 250);
+        clearTimeout(window._searchTimer);
+        window._searchTimer = setTimeout(renderList, 250);
     });
 
     document.querySelectorAll('.nav-item').forEach(item => {
@@ -670,13 +651,14 @@ const App = (() => {
     };
 })();
 </script>
+
 <div class="bottom-nav">
     <div class="nav-item active" data-tab="tabData"><span>🏠</span>数据</div>
     <div class="nav-item" data-tab="tabStats"><span>📊</span>统计</div>
     <div class="nav-item" data-tab="tabBackup"><span>📦</span>备份</div>
     <div class="nav-item" data-tab="tabTrash"><span>🗑️</span>回收站</div>
     <div class="nav-item" data-tab="tabAccount"><span>👤</span>账号</div>
-    <div class="nav-item" data-tab="tabSettings"><span>⚙️</span>设置</div>
 </div>
+
 </body>
 </html>
